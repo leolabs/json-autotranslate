@@ -168,6 +168,17 @@ Azure account if you don't have one already and
 You'll get an API key soon after that which you can pass to json-autotranslate
 using the `-c` or `--config` flag.
 
+You can also provide a region by adding it to the config string after the API
+key, separated by a comma: `--config "{apiKey},{region}". As of this version,
+the following regions are available:
+
+> australiaeast, brazilsouth, canadacentral, centralindia, centralus,
+> centraluseuap, eastasia, eastus, eastus2, francecentral, japaneast, japanwest,
+> koreacentral, northcentralus, northeurope, southcentralus, southeastasia,
+> uksouth, westcentralus, westeurope, westus, westus2, and southafricanorth
+
+<sup><a href="https://docs.microsoft.com/en-us/azure/cognitive-services/translator/reference/v3-0-reference#authenticating-with-a-multi-service-resource">Reference</a></sup>
+
 As of now, the first 2M characters of translation per month are free. After that
 you'll have to pay \$10 per 1M characters that you translate.
 

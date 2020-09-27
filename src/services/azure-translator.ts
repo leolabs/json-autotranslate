@@ -35,13 +35,16 @@ const TRANSLATE_ENDPOINT =
 export class AzureTranslator implements TranslationService {
   public name = 'Azure';
   private apiKey: string;
+  private region?: string;
   private interpolationMatcher: Matcher;
   private supportedLanguages: Set<string>;
 
-  async initialize(apiKey?: string, interpolationMatcher?: Matcher) {
+  async initialize(config?: string, interpolationMatcher?: Matcher) {
+    const [apiKey, region] = config.split(',');
     if (!apiKey) throw new Error(`Please provide an API key for Azure.`);
 
     this.apiKey = apiKey;
+    this.region = region;
     this.interpolationMatcher = interpolationMatcher;
     this.supportedLanguages = await this.getAvailableLanguages();
   }
@@ -73,14 +76,20 @@ export class AzureTranslator implements TranslationService {
       return { key, value, clean, replacements };
     });
 
+    const headers = {
+      'Ocp-Apim-Subscription-Key': this.apiKey,
+      'Content-Type': 'application/json; charset=UTF-8',
+    };
+
+    if (this.region) {
+      headers['Ocp-Apim-Subscription-Region'] = this.region;
+    }
+
     const response = await fetch(
       `${TRANSLATE_ENDPOINT}&from=${from}&to=${to}&textType=html`,
       {
         method: 'POST',
-        headers: {
-          'Ocp-Apim-Subscription-Key': this.apiKey,
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
+        headers,
         body: JSON.stringify(toTranslate.map((c) => ({ Text: c.clean }))),
       },
     );
