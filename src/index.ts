@@ -420,4 +420,5 @@ translate(
   console.log(chalk.bgRed(e.message));
   console.log(chalk.bgRed(e.stack));
   console.log();
+  process.exit(1);
 });
