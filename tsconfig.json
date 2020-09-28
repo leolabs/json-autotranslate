@@ -4,6 +4,7 @@
     "declaration": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
+    "lib": ["ESNext", "DOM"],
     "outDir": "./lib"
   },
   "files": ["src/index.ts"]
