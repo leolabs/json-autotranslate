@@ -50,7 +50,7 @@ export class DeepL implements TranslationService {
   }
 
   supportsLanguage(language: string) {
-    return this.supportedLanguages.has(language);
+    return this.supportedLanguages.has(language.toLowerCase());
   }
 
   async translateStrings(
