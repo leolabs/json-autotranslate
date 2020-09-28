@@ -12,6 +12,7 @@ const API_ENDPOINT = 'https://api.deepl.com/v2';
 export class DeepL implements TranslationService {
   public name = 'DeepL';
   private apiKey: string;
+  private supportedLanguages: Set<string>;
   private interpolationMatcher: Matcher;
 
   async initialize(config?: string, interpolationMatcher?: Matcher) {
@@ -19,14 +20,37 @@ export class DeepL implements TranslationService {
       throw new Error(`Please provide an API key for DeepL.`);
     }
 
-    this.interpolationMatcher = interpolationMatcher;
     this.apiKey = config;
+    this.interpolationMatcher = interpolationMatcher;
+    this.supportedLanguages = await this.fetchLanguages();
+  }
+
+  async fetchLanguages() {
+    const url = new URL(`${API_ENDPOINT}/languages`);
+    url.searchParams.append('auth_key', this.apiKey);
+
+    const response = await fetch(url.toString());
+
+    if (!response.ok) {
+      throw new Error('Could not fetch supported languages from DeepL');
+    }
+
+    const languages: Array<{
+      language: string;
+      name: string;
+    }> = await response.json();
+
+    // DeepL supports e.g. either EN-US or EN as language code, but only returns EN-US
+    // so we add both variants to the array and filter duplicates later.
+    const languageCodes = languages.flatMap((l) => [
+      l.language,
+      l.language.split('-')[0],
+    ]);
+    return new Set(languageCodes.map((l) => l.toLowerCase()));
   }
 
   supportsLanguage(language: string) {
-    return ['en', 'de', 'fr', 'es', 'pt', 'it', 'nl', 'pl', 'ru', 'zh'].includes(
-      language,
-    );
+    return this.supportedLanguages.has(language);
   }
 
   async translateStrings(
@@ -35,7 +59,7 @@ export class DeepL implements TranslationService {
     to: string,
   ) {
     return Promise.all(
-      strings.map(string => this.translateString(string, from, to)),
+      strings.map((string) => this.translateString(string, from, to)),
     );
   }
 
@@ -64,9 +88,9 @@ export class DeepL implements TranslationService {
       }
 
       throw new Error(
-        `[${response.status} ${
-          response.statusText
-        }]: ${(await response.text()) || 'Empty body'}`,
+        `[${response.status} ${response.statusText}]: ${
+          (await response.text()) || 'Empty body'
+        }`,
       );
     }
 
