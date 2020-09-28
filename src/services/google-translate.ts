@@ -1,4 +1,4 @@
-import { Translate } from '@google-cloud/translate';
+import { v2 } from '@google-cloud/translate';
 import {
   replaceInterpolations,
   reInsertInterpolations,
@@ -12,7 +12,7 @@ const codeMap = {
 };
 
 export class GoogleTranslate implements TranslationService {
-  private translate: Translate;
+  private translate: v2.Translate;
   private interpolationMatcher: Matcher;
   private supportedLanguages: string[] = [];
 
@@ -26,7 +26,7 @@ export class GoogleTranslate implements TranslationService {
   }
 
   async initialize(config?: string, interpolationMatcher?: Matcher) {
-    this.translate = new Translate({
+    this.translate = new v2.Translate({
       autoRetry: true,
       keyFilename: config || undefined,
     });
