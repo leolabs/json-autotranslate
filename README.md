@@ -169,7 +169,7 @@ You'll get an API key soon after that which you can pass to json-autotranslate
 using the `-c` or `--config` flag.
 
 You can also provide a region by adding it to the config string after the API
-key, separated by a comma: `--config "{apiKey},{region}". As of this version,
+key, separated by a comma: `--config "{apiKey},{region}"`. As of this version,
 the following regions are available:
 
 > australiaeast, brazilsouth, canadacentral, centralindia, centralus,
