@@ -14,7 +14,10 @@ import {
   loadTranslations,
   getAvailableLanguages,
   fixSourceInconsistencies,
+  evaluateFilePath,
   FileType,
+  DirectoryStructure,
+  TranslatableFile
 } from './util/file-system';
 import { matcherMap } from './matchers';
 
@@ -66,6 +69,10 @@ commander
     '-d, --delete-unused-strings',
     `deletes strings in translation files that don't exist in the template`,
   )
+  .option(
+    '--directory-structure <default|ngx-translate>',
+    'the locale directory structure',
+  )
   .parse(process.argv);
 
 const translate = async (
@@ -74,6 +81,7 @@ const translate = async (
   sourceLang: string = 'en',
   deleteUnusedStrings = false,
   fileType: FileType = 'auto',
+  dirStructure: DirectoryStructure = 'default',
   fixInconsistencies = false,
   service: keyof typeof serviceMap = 'google-translate',
   matcher: keyof typeof matcherMap = 'icu',
@@ -81,15 +89,15 @@ const translate = async (
 ) => {
   const workingDir = path.resolve(process.cwd(), inputDir);
   const resolvedCacheDir = path.resolve(process.cwd(), cacheDir);
-  const languageFolders = getAvailableLanguages(workingDir);
-  const targetLanguages = languageFolders.filter((f) => f !== sourceLang);
+  const availableLanguages = getAvailableLanguages(workingDir, dirStructure);
+  const targetLanguages = availableLanguages.filter((f) => f !== sourceLang);
 
   if (!fs.existsSync(resolvedCacheDir)) {
     fs.mkdirSync(resolvedCacheDir);
     console.log(`🗂 Created the cache directory.`);
   }
 
-  if (!languageFolders.includes(sourceLang)) {
+  if (!availableLanguages.includes(sourceLang)) {
     throw new Error(`The source language ${sourceLang} doesn't exist.`);
   }
 
@@ -103,8 +111,10 @@ const translate = async (
 
   const translationService = serviceMap[service];
 
+  const templateFilePath = evaluateFilePath(workingDir, dirStructure, sourceLang);
+
   const templateFiles = loadTranslations(
-    path.resolve(workingDir, sourceLang),
+    templateFilePath,
     fileType,
   );
 
@@ -141,7 +151,7 @@ const translate = async (
   }
 
   console.log(`🔍 Looking for key-value inconsistencies in source files...`);
-  const insonsistentFiles: string[] = [];
+  const inconsistentFiles: string[] = [];
 
   for (const file of templateFiles.filter((f) => f.type === 'natural')) {
     const inconsistentKeys = Object.keys(file.content).filter(
@@ -149,7 +159,7 @@ const translate = async (
     );
 
     if (inconsistentKeys.length > 0) {
-      insonsistentFiles.push(file.name);
+      inconsistentFiles.push(file.name);
       console.log(
         chalk`├── {yellow.bold ${file.name} contains} {red.bold ${String(
           inconsistentKeys.length,
@@ -158,10 +168,10 @@ const translate = async (
     }
   }
 
-  if (insonsistentFiles.length > 0) {
+  if (inconsistentFiles.length > 0) {
     console.log(
       chalk`└── {yellow.bold Found key-value inconsistencies in} {red.bold ${String(
-        insonsistentFiles.length,
+        inconsistentFiles.length,
       )}} {yellow.bold file(s).}`,
     );
 
@@ -170,8 +180,8 @@ const translate = async (
     if (fixInconsistencies) {
       console.log(`💚 Fixing inconsistencies...`);
       fixSourceInconsistencies(
-        path.resolve(workingDir, sourceLang),
-        path.resolve(resolvedCacheDir, sourceLang),
+        templateFilePath,
+        evaluateFilePath(resolvedCacheDir, dirStructure, sourceLang),
       );
       console.log(chalk`└── {green.bold Fixed all inconsistencies.}`);
     } else {
@@ -223,8 +233,8 @@ const translate = async (
   }
   console.log();
 
-  let addedTranslations = 0;
-  let removedTranslations = 0;
+  let totalAddedTranslations = 0;
+  let totalRemovedTranslations = 0;
 
   for (const language of targetLanguages) {
     if (!translationService.supportsLanguage(language)) {
@@ -235,131 +245,71 @@ const translate = async (
       continue;
     }
 
-    const existingFiles = loadTranslations(
-      path.resolve(workingDir, language),
-      fileType,
-    );
-
     console.log(
       chalk`💬 Translating strings from {green.bold ${sourceLang}} to {green.bold ${language}}...`,
     );
 
-    if (deleteUnusedStrings) {
-      const templateFileNames = templateFiles.map((t) => t.name);
-      const deletableFiles = existingFiles.filter(
-        (f) => !templateFileNames.includes(f.name),
-      );
+    const translateContent = createTranslator(
+      translationService,
+      service,
+      sourceLang,
+      language,
+      cacheDir,
+      workingDir,
+      dirStructure,
+      deleteUnusedStrings
+    );
 
-      for (const file of deletableFiles) {
-        console.log(
-          chalk`├── {red.bold ${file.name} is no longer used and will be deleted.}`,
+    switch (dirStructure) {
+      case 'default':
+        const existingFiles = loadTranslations(
+          evaluateFilePath(workingDir, dirStructure, language),
+          fileType,
         );
 
-        fs.unlinkSync(path.resolve(workingDir, language, file.name));
+        if (deleteUnusedStrings) {
+          const templateFileNames = templateFiles.map((t) => t.name);
+          const deletableFiles = existingFiles.filter(
+            (f) => !templateFileNames.includes(f.name),
+          );
 
-        const cacheFile = path.resolve(workingDir, language, file.name);
-        if (fs.existsSync(cacheFile)) {
-          fs.unlinkSync(cacheFile);
+          for (const file of deletableFiles) {
+            console.log(
+              chalk`├── {red.bold ${file.name} is no longer used and will be deleted.}`,
+            );
+
+            fs.unlinkSync(path.resolve(evaluateFilePath(workingDir, dirStructure, language), file.name));
+
+            const cacheFile = path.resolve(evaluateFilePath(workingDir, dirStructure, language), file.name);
+            if (fs.existsSync(cacheFile)) {
+              fs.unlinkSync(cacheFile);
+            }
+          }
         }
-      }
-    }
 
-    for (const templateFile of templateFiles) {
-      process.stdout.write(`├── Translating ${templateFile.name}`);
+        for (const templateFile of templateFiles) {
+          process.stdout.write(`├── Translating ${templateFile.name}`);
 
-      const languageFile = existingFiles.find(
-        (f) => f.name === templateFile.name,
-      );
-      const existingKeys = languageFile
-        ? Object.keys(languageFile.content)
-        : [];
-      const existingTranslations = languageFile ? languageFile.content : {};
+          const [addedTranslations, removedTranslations] =
+            await translateContent(templateFile, existingFiles.find(
+            (f) => f.name === templateFile.name
+            ));
 
-      const cachePath = path.resolve(
-        resolvedCacheDir,
-        sourceLang,
-        languageFile ? languageFile.name : '',
-      );
-      let cacheDiff: string[] = [];
-      if (fs.existsSync(cachePath) && !fs.statSync(cachePath).isDirectory()) {
-        const cachedFile = flatten.convert(
-          JSON.parse(fs.readFileSync(cachePath).toString().trim()),
-        );
-        const cDiff = diff(cachedFile, templateFile.content);
-        cacheDiff = Object.keys(cDiff).filter((k) => cDiff[k]);
-        const changedItems = Object.keys(cacheDiff).length.toString();
-        process.stdout.write(
-          chalk` ({green.bold ${changedItems}} changes from cache)`,
-        );
-      }
-
-      const templateStrings = Object.keys(templateFile.content);
-      const stringsToTranslate = templateStrings
-        .filter((key) => !existingKeys.includes(key) || cacheDiff.includes(key))
-        .map((key) => ({
-          key,
-          value:
-            templateFile.type === 'key-based' ? templateFile.content[key] : key,
-        }));
-
-      const unusedStrings = existingKeys.filter(
-        (key) => !templateStrings.includes(key),
-      );
-
-      const translatedStrings = await translationService.translateStrings(
-        stringsToTranslate,
-        sourceLang,
-        language,
-      );
-
-      const newKeys = translatedStrings.reduce(
-        (acc, cur) => ({ ...acc, [cur.key]: cur.translated }),
-        {} as { [k: string]: string },
-      );
-
-      addedTranslations += translatedStrings.length;
-      removedTranslations += deleteUnusedStrings ? unusedStrings.length : 0;
-
-      if (service !== 'dry-run') {
-        const translatedFile = {
-          ...omit(
-            existingTranslations,
-            deleteUnusedStrings ? unusedStrings : [],
-          ),
-          ...newKeys,
-        };
-
-        const newContent =
-          JSON.stringify(
-            templateFile.type === 'key-based'
-              ? flatten.undo(translatedFile)
-              : translatedFile,
-            null,
-            2,
-          ) + `\n`;
-
-        fs.writeFileSync(
-          path.resolve(workingDir, language, templateFile.name),
-          newContent,
-        );
-
-        const languageCachePath = path.resolve(resolvedCacheDir, language);
-        if (!fs.existsSync(languageCachePath)) {
-          fs.mkdirSync(languageCachePath);
+          totalAddedTranslations += addedTranslations;
+          totalRemovedTranslations += removedTranslations;
         }
-        fs.writeFileSync(
-          path.resolve(languageCachePath, templateFile.name),
-          JSON.stringify(translatedFile, null, 2) + '\n',
-        );
-      }
+        break;
 
-      console.log(
-        deleteUnusedStrings && unusedStrings.length > 0
-          ? chalk` ({green.bold +${String(
-              translatedStrings.length,
-            )}}/{red.bold -${String(unusedStrings.length)}})`
-          : chalk` ({green.bold +${String(translatedStrings.length)}})`,
-      );
+      case 'ngx-translate':
+        const [addedTranslations, removedTranslations] =
+          await translateContent(
+            templateFiles.find((f) => f.name === `${sourceLang}.json`),
+            templateFiles.find((f) => f.name === `${language}.json`)
+          );
+
+        totalAddedTranslations += addedTranslations;
+        totalRemovedTranslations += removedTranslations;
+        break;
     }
 
     console.log(chalk`└── {green.bold All strings have been translated.}`);
@@ -370,9 +320,9 @@ const translate = async (
     console.log('🗂 Caching source translation files...');
     await new Promise((res, rej) =>
       ncp(
-        path.resolve(workingDir, sourceLang),
-        path.resolve(resolvedCacheDir, sourceLang),
-        (err) => (err ? rej() : res()),
+        evaluateFilePath(workingDir, dirStructure, sourceLang),
+        evaluateFilePath(resolvedCacheDir, dirStructure, sourceLang),
+        (err) => (err ? rej() : res(null)),
       ),
     );
     console.log(chalk`└── {green.bold Translation files have been cached.}`);
@@ -380,13 +330,13 @@ const translate = async (
   }
 
   console.log(
-    chalk.green.bold(`${addedTranslations} new translations have been added!`),
+    chalk.green.bold(`${totalAddedTranslations} new translations have been added!`),
   );
 
-  if (removedTranslations > 0) {
+  if (totalRemovedTranslations > 0) {
     console.log(
       chalk.green.bold(
-        `${removedTranslations} translations have been removed!`,
+        `${totalRemovedTranslations} translations have been removed!`,
       ),
     );
   }
@@ -410,15 +360,124 @@ translate(
   commander.sourceLanguage,
   commander.deleteUnusedStrings,
   commander.type,
+  commander.directoryStructure,
   commander.fixInconsistencies,
   commander.service,
   commander.matcher,
   commander.config,
 ).catch((e: Error) => {
   console.log();
-  console.log(chalk.bgRed('An error has occured:'));
+  console.log(chalk.bgRed('An error has occurred:'));
   console.log(chalk.bgRed(e.message));
   console.log(chalk.bgRed(e.stack));
   console.log();
   process.exit(1);
 });
+
+function createTranslator(
+  translationService: typeof serviceMap[any],
+  service: keyof typeof serviceMap,
+  sourceLang: string,
+  targetLang: string,
+  cacheDir: string,
+  workingDir: string,
+  dirStructure: DirectoryStructure,
+  deleteUnusedStrings: boolean) {
+  return async (
+    sourceFile: TranslatableFile,
+    destinationFile: TranslatableFile
+  ) => {
+    const cachePath = path.resolve(
+      evaluateFilePath(cacheDir, dirStructure, sourceLang),
+      sourceFile ? sourceFile.name : ''
+    );
+    let cacheDiff: string[] = [];
+    if (fs.existsSync(cachePath) && !fs.statSync(cachePath).isDirectory()) {
+      const cachedFile = flatten.convert(
+        JSON.parse(fs.readFileSync(cachePath).toString().trim()),
+      );
+      const cDiff = diff(cachedFile, sourceFile.content);
+      cacheDiff = Object.keys(cDiff).filter((k) => cDiff[k]);
+      const changedItems = Object.keys(cacheDiff).length.toString();
+      process.stdout.write(
+        chalk` ({green.bold ${changedItems}} changes from cache)`,
+      );
+    }
+
+    const existingKeys = destinationFile
+      ? Object.keys(destinationFile.content)
+      : [];
+    const templateStrings = Object.keys(sourceFile.content);
+    const stringsToTranslate = templateStrings
+      .filter((key) => !existingKeys.includes(key) || cacheDiff.includes(key))
+      .map((key) => ({
+        key,
+        value:
+          sourceFile.type === 'key-based' ? sourceFile.content[key] : key,
+      }));
+
+    const unusedStrings = existingKeys.filter(
+      (key) => !templateStrings.includes(key),
+    );
+
+    const translatedStrings = await translationService.translateStrings(
+      stringsToTranslate,
+      sourceLang,
+      targetLang,
+    );
+
+    const newKeys = translatedStrings.reduce(
+      (acc, cur) => ({ ...acc, [cur.key]: cur.translated }),
+      {} as { [k: string]: string },
+    );
+
+    if (service !== 'dry-run') {
+      const existingTranslations = destinationFile ? destinationFile.content : {};
+
+      const translatedFile = {
+        ...omit(
+          existingTranslations,
+          deleteUnusedStrings ? unusedStrings : [],
+        ),
+        ...newKeys,
+      };
+
+      const newContent =
+        JSON.stringify(
+          sourceFile.type === 'key-based'
+            ? flatten.undo(translatedFile)
+            : translatedFile,
+          null,
+          2,
+        ) + `\n`;
+
+      fs.writeFileSync(
+        path.resolve(evaluateFilePath(workingDir, dirStructure, targetLang), destinationFile.name),
+        newContent,
+      );
+
+      const languageCachePath = evaluateFilePath(cacheDir, dirStructure, targetLang);
+      if (!fs.existsSync(languageCachePath)) {
+        fs.mkdirSync(languageCachePath);
+      }
+      fs.writeFileSync(
+        path.resolve(languageCachePath, destinationFile.name),
+        JSON.stringify(translatedFile, null, 2) + '\n',
+      );
+    }
+
+    console.log(
+      deleteUnusedStrings && unusedStrings.length > 0
+        ? chalk` ({green.bold +${String(
+          translatedStrings.length,
+        )}}/{red.bold -${String(unusedStrings.length)}})`
+        : chalk` ({green.bold +${String(translatedStrings.length)}})`,
+    );
+
+    // Added translations and removed translations
+    return [
+      translatedStrings.length,
+      deleteUnusedStrings ? unusedStrings.length : 0
+    ];
+  }
+}
