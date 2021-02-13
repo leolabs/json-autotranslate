@@ -4,12 +4,31 @@ import * as flatten from 'flattenjs';
 
 export type FileType = 'key-based' | 'natural' | 'auto';
 
-export const getAvailableLanguages = (directory: string) =>
-  fs
-    .readdirSync(directory)
-    .map(d => path.resolve(directory, d))
-    .filter(d => fs.statSync(d).isDirectory())
-    .map(d => path.basename(d));
+export type DirectoryStructure = 'default' | 'ngx-translate';
+
+export interface TranslatableFile {
+  name: string,
+  originalContent: string,
+  type: FileType,
+  content: object,
+}
+
+export const getAvailableLanguages = (directory: string, directoryStructure: DirectoryStructure) => {
+  const directoryContent = fs.readdirSync(directory);
+
+  switch (directoryStructure) {
+    case 'default':
+      return directoryContent
+        .map(d => path.resolve(directory, d))
+        .filter(d => fs.statSync(d).isDirectory())
+        .map(d => path.basename(d));
+
+    case 'ngx-translate':
+      return directoryContent
+        .filter(f => f.endsWith('.json'))
+        .map(f => f.slice(0, -5));
+  }
+}
 
 export const detectFileType = (json: any): FileType => {
   const invalidKeys = Object.keys(json).filter(
@@ -24,22 +43,22 @@ export const loadTranslations = (
   fileType: FileType = 'auto',
 ) =>
   fs
-    .readdirSync(directory)
-    .filter(f => f.endsWith('.json'))
-    .map(f => {
-      const json = require(path.resolve(directory, f));
-      const type = fileType === 'auto' ? detectFileType(json) : fileType;
+  .readdirSync(directory)
+  .filter(f => f.endsWith('.json'))
+  .map(f => {
+    const json = require(path.resolve(directory, f));
+    const type = fileType === 'auto' ? detectFileType(json) : fileType;
 
-      return {
-        name: f,
-        originalContent: json,
-        type,
-        content:
-          type === 'key-based'
-            ? flatten.convert(require(path.resolve(directory, f)))
-            : require(path.resolve(directory, f)),
-      };
-    });
+    return {
+      name: f,
+      originalContent: json,
+      type,
+      content:
+        type === 'key-based'
+          ? flatten.convert(require(path.resolve(directory, f)))
+          : require(path.resolve(directory, f)),
+    } as TranslatableFile;
+  });
 
 export const fixSourceInconsistencies = (
   directory: string,
@@ -62,5 +81,16 @@ export const fixSourceInconsistencies = (
       path.resolve(cacheDir, file.name),
       JSON.stringify(fixedContent, null, 2) + '\n',
     );
+  }
+};
+
+export const evaluateFilePath =
+  (directory: string, dirStructure: DirectoryStructure, lang: string) => {
+  switch (dirStructure) {
+    case 'default':
+      return path.resolve(directory, lang);
+
+    case 'ngx-translate':
+      return path.resolve(directory);
   }
 };

@@ -47,7 +47,10 @@ $ yarn json-autotranslate -i locales -s manual
 
 ## Directory Structure
 
-Your `locales` directory should look like this:
+You can specify your `locales`/`i18n` directory structure using the
+`--directory-structure` option.
+
+### Default
 
 ```
 locales
@@ -63,6 +66,20 @@ If you don't specify another source language, this tool will translate all files
 located in the `en` into all other languages that exist as directories. A single
 language directory (e.g. `en`) should only contain JSON files. Sub-directories
 and other files will be ignored.
+
+### Ngx-translate
+
+```
+i18n
+├── de.json
+├── en.json
+├── fr.json
+└── it.json
+```
+
+If you don't specify another source language, this tool will translate `en.json`
+into all other languages that exist as files. The `i18n` directory should only
+contain JSON files. Sub-directories and other files will be ignored.
 
 ## File Structure
 
@@ -94,7 +111,7 @@ inconsistencies by passing the `--fix-inconsistencies` flag.
 
 If you pass use the `keybased` option (`--type keybased`), this tool will use
 the source file's values as the basis of translations. Keys can be nested, the
-structure will be transfered over to the translated files as well.
+structure will be transferred over to the translated files as well.
 
 ```json
 {
@@ -169,7 +186,7 @@ You'll get an API key soon after that which you can pass to json-autotranslate
 using the `-c` or `--config` flag.
 
 You can also provide a region by adding it to the config string after the API
-key, separated by a comma: `--config "{apiKey},{region}"`. As of this version,
+key, separated by a comma: `--config apiKey,region`. As of this version,
 the following regions are available:
 
 > australiaeast, brazilsouth, canadacentral, centralindia, centralus,
@@ -210,17 +227,18 @@ available matchers.
 
 ```
 Options:
-  -i, --input <inputDir>               the directory containing language directories (default: ".")
-  -l, --source-language <sourceLang>   specify the source language (default: "en")
-  -t, --type <key-based|natural|auto>  specify the file structure type (default: "auto")
-  -s, --service <service>              selects the service to be used for translation (default: "google-translate")
-  --list-services                      outputs a list of available services
-  -m, --matcher <matcher>              selects the matcher to be used for interpolations (default: "icu")
-  --list-matchers                      outputs a list of available matchers
-  -c, --config <value>                 supply a config parameter (e.g. path to key file) to the translation service
-  -f, --fix-inconsistencies            automatically fixes inconsistent key-value pairs by setting the value to the key
-  -d, --delete-unused-strings          deletes strings in translation files that don't exist in the template
-  -h, --help                           output usage information
+  -i, --input <inputDir>                        the directory containing language directories (default: ".")
+  -l, --source-language <sourceLang>            specify the source language (default: "en")
+  -t, --type <key-based|natural|auto>           specify the file structure type (default: "auto")
+  -s, --service <service>                       selects the service to be used for translation (default: "google-translate")
+  --list-services                               outputs a list of available services
+  -m, --matcher <matcher>                       selects the matcher to be used for interpolations (default: "icu")
+  --list-matchers                               outputs a list of available matchers
+  -c, --config <value>                          supply a config parameter (e.g. path to key file) to the translation service
+  -f, --fix-inconsistencies                     automatically fixes inconsistent key-value pairs by setting the value to the key
+  -d, --delete-unused-strings                   deletes strings in translation files that don't exist in the template
+  -h, --help                                    output usage information
+  --directory-structure <default|ngx-translate> the locale directory structure (default: "default")
 ```
 
 ## Contributing
