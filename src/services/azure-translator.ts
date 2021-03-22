@@ -86,7 +86,7 @@ export class AzureTranslator implements TranslationService {
     }
 
     const response = await fetch(
-      `${TRANSLATE_ENDPOINT}&from=${from}&to=${to}&textType=html`,
+      `${TRANSLATE_ENDPOINT}&from=${from}&to=${to}`,
       {
         method: 'POST',
         headers,
