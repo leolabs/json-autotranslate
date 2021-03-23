@@ -86,7 +86,7 @@ export class AzureTranslator implements TranslationService {
     }
 
     const response = await fetch(
-      `${TRANSLATE_ENDPOINT}&from=${from}&to=${to}`,
+      `${TRANSLATE_ENDPOINT}&from=${from}&to=${to}&textType=html`,
       {
         method: 'POST',
         headers,
@@ -99,7 +99,7 @@ export class AzureTranslator implements TranslationService {
     }
 
     const data = (await response.json()) as TranslationResponse[];
-
+    
     return data.map((res, i) => ({
       key: toTranslate[i].key,
       value: toTranslate[i].value,
