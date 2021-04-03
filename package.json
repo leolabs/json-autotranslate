@@ -38,6 +38,7 @@
     "deep-object-diff": "^1.1.0",
     "dotenv": "^8.2.0",
     "flattenjs": "^2.0.0",
+    "html-entities": "^2.3.2",
     "inquirer": "^7.3.3",
     "lodash": "^4.17.20",
     "messageformat-parser": "^4.1.3",

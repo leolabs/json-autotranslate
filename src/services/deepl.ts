@@ -1,3 +1,4 @@
+import { decode } from 'html-entities';
 import fetch from 'node-fetch';
 
 import { TranslationService, TranslationResult } from '.';
@@ -14,8 +15,13 @@ export class DeepL implements TranslationService {
   private apiKey: string;
   private supportedLanguages: Set<string>;
   private interpolationMatcher: Matcher;
+  private decodeEscapes: boolean;
 
-  async initialize(config?: string, interpolationMatcher?: Matcher) {
+  async initialize(
+    config?: string,
+    interpolationMatcher?: Matcher,
+    decodeEscapes?: boolean,
+  ) {
     if (!config) {
       throw new Error(`Please provide an API key for DeepL.`);
     }
@@ -23,6 +29,7 @@ export class DeepL implements TranslationService {
     this.apiKey = config;
     this.interpolationMatcher = interpolationMatcher;
     this.supportedLanguages = await this.fetchLanguages();
+    this.decodeEscapes = decodeEscapes;
   }
 
   async fetchLanguages() {
@@ -94,13 +101,15 @@ export class DeepL implements TranslationService {
       );
     }
 
+    const translated = reInsertInterpolations(
+      (await response.json()).translations[0].text,
+      replacements,
+    );
+
     return {
       key: string.key,
       value: string.value,
-      translated: reInsertInterpolations(
-        (await response.json()).translations[0].text,
-        replacements,
-      ),
+      translated: this.decodeEscapes ? decode(translated) : translated,
     };
   }
 }

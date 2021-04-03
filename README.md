@@ -239,6 +239,7 @@ Options:
   -d, --delete-unused-strings                   deletes strings in translation files that don't exist in the template
   -h, --help                                    output usage information
   --directory-structure <default|ngx-translate> the locale directory structure (default: "default")
+  --decode-escapes                              decodes escaped HTML entities like &#39; into normal UTF-8 characters
 ```
 
 ## Contributing
