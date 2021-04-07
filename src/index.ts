@@ -73,6 +73,10 @@ commander
     '--directory-structure <default|ngx-translate>',
     'the locale directory structure',
   )
+  .option(
+    '--decode-escapes',
+    'decodes escaped HTML entities like &#39; into normal UTF-8 characters'
+  )
   .parse(process.argv);
 
 const translate = async (
@@ -85,6 +89,7 @@ const translate = async (
   fixInconsistencies = false,
   service: keyof typeof serviceMap = 'google-translate',
   matcher: keyof typeof matcherMap = 'icu',
+  decodeEscapes = false,
   config?: string,
 ) => {
   const workingDir = path.resolve(process.cwd(), inputDir);
@@ -140,7 +145,7 @@ const translate = async (
   console.log();
 
   console.log(`✨ Initializing ${translationService.name}...`);
-  await translationService.initialize(config, matcherMap[matcher]);
+  await translationService.initialize(config, matcherMap[matcher], decodeEscapes);
   console.log(chalk`└── {green.bold Done}`);
   console.log();
 
@@ -364,7 +369,8 @@ translate(
   commander.fixInconsistencies,
   commander.service,
   commander.matcher,
-  commander.config,
+  commander.decodeEscapes,
+  commander.config,  
 ).catch((e: Error) => {
   console.log();
   console.log(chalk.bgRed('An error has occurred:'));

@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import { chunk, flatten } from 'lodash';
+import { decode } from 'html-entities';
 
 import { TranslationService, TranslationResult, TString } from '.';
 import {
@@ -38,8 +39,13 @@ export class AzureTranslator implements TranslationService {
   private region?: string;
   private interpolationMatcher: Matcher;
   private supportedLanguages: Set<string>;
+  private decodeEscapes: boolean;
 
-  async initialize(config?: string, interpolationMatcher?: Matcher) {
+  async initialize(
+    config?: string,
+    interpolationMatcher?: Matcher,
+    decodeEscapes?: boolean,
+  ) {
     const [apiKey, region] = config.split(',');
     if (!apiKey) throw new Error(`Please provide an API key for Azure.`);
 
@@ -47,6 +53,7 @@ export class AzureTranslator implements TranslationService {
     this.region = region;
     this.interpolationMatcher = interpolationMatcher;
     this.supportedLanguages = await this.getAvailableLanguages();
+    this.decodeEscapes = decodeEscapes;
   }
 
   async getAvailableLanguages() {
@@ -100,14 +107,17 @@ export class AzureTranslator implements TranslationService {
 
     const data = (await response.json()) as TranslationResponse[];
 
-    return data.map((res, i) => ({
-      key: toTranslate[i].key,
-      value: toTranslate[i].value,
-      translated: reInsertInterpolations(
+    return data.map((res, i) => {
+      const translated = reInsertInterpolations(
         res.translations[0].text,
         toTranslate[i].replacements,
-      ),
-    }));
+      );
+      return {
+        key: toTranslate[i].key,
+        value: toTranslate[i].value,
+        translated: this.decodeEscapes ? decode(translated) : translated,
+      };
+    });
   }
 
   async translateStrings(

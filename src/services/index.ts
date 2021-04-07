@@ -20,6 +20,7 @@ export interface TranslationService {
   initialize: (
     config?: string,
     interpolationMatcher?: Matcher,
+    decodeEscapes?: boolean
   ) => Promise<void>;
   supportsLanguage: (language: string) => boolean;
   translateStrings: (

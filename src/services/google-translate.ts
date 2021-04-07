@@ -1,4 +1,5 @@
 import { v2 } from '@google-cloud/translate';
+import { decode } from 'html-entities';
 import {
   replaceInterpolations,
   reInsertInterpolations,
@@ -15,17 +16,23 @@ export class GoogleTranslate implements TranslationService {
   private translate: v2.Translate;
   private interpolationMatcher: Matcher;
   private supportedLanguages: string[] = [];
+  private decodeEscapes: boolean;
 
   public name = 'Google Translate';
 
   cleanResponse(response: string) {
-    return response.replace(
+    const translated = response.replace(
       /\<(.+?)\s*\>\s*(.+?)\s*\<\/\s*(.+?)>/g,
       '<$1>$2</$3>',
     );
+    return this.decodeEscapes ? decode(translated) : translated;
   }
 
-  async initialize(config?: string, interpolationMatcher?: Matcher) {
+  async initialize(
+    config?: string,
+    interpolationMatcher?: Matcher,
+    decodeEscapes?: boolean,
+  ) {
     this.translate = new v2.Translate({
       autoRetry: true,
       keyFilename: config || undefined,
@@ -33,6 +40,7 @@ export class GoogleTranslate implements TranslationService {
 
     this.interpolationMatcher = interpolationMatcher;
     this.supportedLanguages = await this.getAvailableLanguages();
+    this.decodeEscapes = decodeEscapes;
   }
 
   async getAvailableLanguages() {
