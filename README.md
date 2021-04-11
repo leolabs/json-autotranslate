@@ -240,6 +240,7 @@ Options:
   -h, --help                                    output usage information
   --directory-structure <default|ngx-translate> the locale directory structure (default: "default")
   --decode-escapes                              decodes escaped HTML entities like &#39; into normal UTF-8 characters
+  --tab-width <value> (default: 2)              the number of whitespace characters used in JSON indentation 
 ```
 
 ## Contributing
