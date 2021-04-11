@@ -63,6 +63,7 @@ export const loadTranslations = (
 export const fixSourceInconsistencies = (
   directory: string,
   cacheDir: string,
+  tabWidth: number
 ) => {
   const files = loadTranslations(directory).filter(f => f.type === 'natural');
 
@@ -74,12 +75,12 @@ export const fixSourceInconsistencies = (
 
     fs.writeFileSync(
       path.resolve(directory, file.name),
-      JSON.stringify(fixedContent, null, 2) + '\n',
+      JSON.stringify(fixedContent, null, tabWidth) + '\n',
     );
 
     fs.writeFileSync(
       path.resolve(cacheDir, file.name),
-      JSON.stringify(fixedContent, null, 2) + '\n',
+      JSON.stringify(fixedContent, null, tabWidth) + '\n',
     );
   }
 };
