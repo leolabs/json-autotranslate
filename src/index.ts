@@ -17,7 +17,7 @@ import {
   evaluateFilePath,
   FileType,
   DirectoryStructure,
-  TranslatableFile
+  TranslatableFile,
 } from './util/file-system';
 import { matcherMap } from './matchers';
 
@@ -94,7 +94,7 @@ const translate = async (
   service: keyof typeof serviceMap = 'google-translate',
   matcher: keyof typeof matcherMap = 'icu',
   decodeEscapes = false,
-  tabWidth?: number, // no default value, as we try to auto-detect it
+  cmdLineTabWidth?: string, // no default value, as we try to auto-detect it
   config?: string,
 ) => {
   const workingDir = path.resolve(process.cwd(), inputDir);
@@ -135,7 +135,8 @@ const translate = async (
     );
   }
 
-  if (tabWidth === undefined) {
+  let tabWidth: number;
+  if (cmdLineTabWidth === undefined) {
     // Try detecting tabWidth from .prettierrc config file in working directory.
     const prettierConfigPath = path.resolve('.prettierrc');
     if (fs.existsSync(prettierConfigPath)) {
@@ -160,9 +161,11 @@ const translate = async (
           ),
         );
       }
+    } else {
+      tabWidth = 2;
     }
-  } else {
-    tabWidth = 2;
+  }else {
+    tabWidth = Number.parseInt(cmdLineTabWidth);
   }
 
   console.log(
