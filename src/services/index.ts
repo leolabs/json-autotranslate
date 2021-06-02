@@ -1,5 +1,6 @@
 import { GoogleTranslate } from './google-translate';
 import { DeepL } from './deepl';
+import { DeepLFree } from './deepl-free';
 import { DryRun } from './dry-run';
 import { AzureTranslator } from './azure-translator';
 import { ManualTranslation } from './manual';
@@ -20,7 +21,7 @@ export interface TranslationService {
   initialize: (
     config?: string,
     interpolationMatcher?: Matcher,
-    decodeEscapes?: boolean
+    decodeEscapes?: boolean,
   ) => Promise<void>;
   supportsLanguage: (language: string) => boolean;
   translateStrings: (
@@ -35,6 +36,7 @@ export const serviceMap: {
 } = {
   'google-translate': new GoogleTranslate(),
   deepl: new DeepL(),
+  deeplfree: new DeepLFree(),
   'dry-run': new DryRun(),
   azure: new AzureTranslator(),
   manual: new ManualTranslation(),
