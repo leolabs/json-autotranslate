@@ -1,9 +1,10 @@
 # json-autotranslate
 
 This tool allows you to translate a locale folder containing multiple JSON files
-into multiple languages using Google Translate, DeepL, Azure Translator, or
-manually. You can either use the translation keys (natural translation) or their
-values (key-based translation) as a source for translations.
+into multiple languages using Google Translate, DeepL (free/pro), Azure
+Translator, or manually. You can either use the translation keys (natural
+translation) or their values (key-based translation) as a source for
+translations.
 
 If some of the strings have already been translated, they won't be translated
 again. This improves performance and ensures that you won't accidentally lose
@@ -130,7 +131,8 @@ As of this release, json-autotranslate offers five services:
 
 - **google-translate** (default, uses
   [Google Translate](https://translate.google.com) to translate strings)
-- **deepl** (uses [DeepL](https://deepl.com) to translate strings)
+- **deepl** (uses [DeepL Pro](https://deepl.com) to translate strings)
+- **deeplfree** (uses [DeepL Free](https://deepl.com) to translate strings)
 - **azure** (uses Azure's
   [Translator Text](https://azure.microsoft.com/en-us/services/cognitive-services/translator-text-api/)
   to translate strings)
@@ -166,12 +168,13 @@ You can specify the location of your downloaded JSON key file using the `-c` or
 ### DeepL
 
 To use this tool with DeepL, you need to obtain an API key from their website.
-API keys are only available to DeepL Pro API users. If you don't have a
-Developer account yet, you can create one
+If you don't have a Developer account yet, you can create one
 [here](https://www.deepl.com/en/pro.html#developer).
 
-DeepL charges a fixed monthly price plus a variable fee for every 500 translated
-characters.
+DeepL Pro charges a fixed monthly price plus a variable fee for every 500
+translated characters.
+
+DeepL Free is limited to 500,000 characters translated per month.
 
 After you have completed your sign-up, you can pass the API key to
 json-autotranslate using the `-c` or `--config` option.
@@ -186,8 +189,8 @@ You'll get an API key soon after that which you can pass to json-autotranslate
 using the `-c` or `--config` flag.
 
 You can also provide a region by adding it to the config string after the API
-key, separated by a comma: `--config apiKey,region`. As of this version,
-the following regions are available:
+key, separated by a comma: `--config apiKey,region`. As of this version, the
+following regions are available:
 
 > australiaeast, brazilsouth, canadacentral, centralindia, centralus,
 > centraluseuap, eastasia, eastus, eastus2, francecentral, japaneast, japanwest,
