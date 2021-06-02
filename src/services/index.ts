@@ -36,7 +36,7 @@ export const serviceMap: {
 } = {
   'google-translate': new GoogleTranslate(),
   deepl: new DeepL(),
-  deeplfree: new DeepLFree(),
+  'deepl-free': new DeepLFree(),
   'dry-run': new DryRun(),
   azure: new AzureTranslator(),
   manual: new ManualTranslation(),

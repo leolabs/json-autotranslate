@@ -132,7 +132,7 @@ As of this release, json-autotranslate offers five services:
 - **google-translate** (default, uses
   [Google Translate](https://translate.google.com) to translate strings)
 - **deepl** (uses [DeepL Pro](https://deepl.com) to translate strings)
-- **deeplfree** (uses [DeepL Free](https://deepl.com) to translate strings)
+- **deepl-free** (uses [DeepL Free](https://deepl.com) to translate strings)
 - **azure** (uses Azure's
   [Translator Text](https://azure.microsoft.com/en-us/services/cognitive-services/translator-text-api/)
   to translate strings)
