@@ -17,7 +17,7 @@ import {
   evaluateFilePath,
   FileType,
   DirectoryStructure,
-  TranslatableFile
+  TranslatableFile,
 } from './util/file-system';
 import { matcherMap } from './matchers';
 
@@ -75,7 +75,7 @@ commander
   )
   .option(
     '--decode-escapes',
-    'decodes escaped HTML entities like &#39; into normal UTF-8 characters'
+    'decodes escaped HTML entities like &#39; into normal UTF-8 characters',
   )
   .parse(process.argv);
 
@@ -116,12 +116,13 @@ const translate = async (
 
   const translationService = serviceMap[service];
 
-  const templateFilePath = evaluateFilePath(workingDir, dirStructure, sourceLang);
-
-  const templateFiles = loadTranslations(
-    templateFilePath,
-    fileType,
+  const templateFilePath = evaluateFilePath(
+    workingDir,
+    dirStructure,
+    sourceLang,
   );
+
+  const templateFiles = loadTranslations(templateFilePath, fileType);
 
   if (templateFiles.length === 0) {
     throw new Error(
@@ -145,7 +146,11 @@ const translate = async (
   console.log();
 
   console.log(`✨ Initializing ${translationService.name}...`);
-  await translationService.initialize(config, matcherMap[matcher], decodeEscapes);
+  await translationService.initialize(
+    config,
+    matcherMap[matcher],
+    decodeEscapes,
+  );
   console.log(chalk`└── {green.bold Done}`);
   console.log();
 
@@ -262,7 +267,7 @@ const translate = async (
       cacheDir,
       workingDir,
       dirStructure,
-      deleteUnusedStrings
+      deleteUnusedStrings,
     );
 
     switch (dirStructure) {
@@ -283,9 +288,17 @@ const translate = async (
               chalk`├── {red.bold ${file.name} is no longer used and will be deleted.}`,
             );
 
-            fs.unlinkSync(path.resolve(evaluateFilePath(workingDir, dirStructure, language), file.name));
+            fs.unlinkSync(
+              path.resolve(
+                evaluateFilePath(workingDir, dirStructure, language),
+                file.name,
+              ),
+            );
 
-            const cacheFile = path.resolve(evaluateFilePath(workingDir, dirStructure, language), file.name);
+            const cacheFile = path.resolve(
+              evaluateFilePath(workingDir, dirStructure, language),
+              file.name,
+            );
             if (fs.existsSync(cacheFile)) {
               fs.unlinkSync(cacheFile);
             }
@@ -296,9 +309,10 @@ const translate = async (
           process.stdout.write(`├── Translating ${templateFile.name}`);
 
           const [addedTranslations, removedTranslations] =
-            await translateContent(templateFile, existingFiles.find(
-            (f) => f.name === templateFile.name
-            ));
+            await translateContent(
+              templateFile,
+              existingFiles.find((f) => f.name === templateFile.name),
+            );
 
           totalAddedTranslations += addedTranslations;
           totalRemovedTranslations += removedTranslations;
@@ -306,11 +320,10 @@ const translate = async (
         break;
 
       case 'ngx-translate':
-        const [addedTranslations, removedTranslations] =
-          await translateContent(
-            templateFiles.find((f) => f.name === `${sourceLang}.json`),
-            templateFiles.find((f) => f.name === `${language}.json`)
-          );
+        const [addedTranslations, removedTranslations] = await translateContent(
+          templateFiles.find((f) => f.name === `${sourceLang}.json`),
+          templateFiles.find((f) => f.name === `${language}.json`),
+        );
 
         totalAddedTranslations += addedTranslations;
         totalRemovedTranslations += removedTranslations;
@@ -335,7 +348,9 @@ const translate = async (
   }
 
   console.log(
-    chalk.green.bold(`${totalAddedTranslations} new translations have been added!`),
+    chalk.green.bold(
+      `${totalAddedTranslations} new translations have been added!`,
+    ),
   );
 
   if (totalRemovedTranslations > 0) {
@@ -370,7 +385,7 @@ translate(
   commander.service,
   commander.matcher,
   commander.decodeEscapes,
-  commander.config,  
+  commander.config,
 ).catch((e: Error) => {
   console.log();
   console.log(chalk.bgRed('An error has occurred:'));
@@ -388,14 +403,15 @@ function createTranslator(
   cacheDir: string,
   workingDir: string,
   dirStructure: DirectoryStructure,
-  deleteUnusedStrings: boolean) {
+  deleteUnusedStrings: boolean,
+) {
   return async (
     sourceFile: TranslatableFile,
-    destinationFile: TranslatableFile
+    destinationFile: TranslatableFile,
   ) => {
     const cachePath = path.resolve(
       evaluateFilePath(cacheDir, dirStructure, sourceLang),
-      sourceFile ? sourceFile.name : ''
+      sourceFile ? sourceFile.name : '',
     );
     let cacheDiff: string[] = [];
     if (fs.existsSync(cachePath) && !fs.statSync(cachePath).isDirectory()) {
@@ -418,8 +434,7 @@ function createTranslator(
       .filter((key) => !existingKeys.includes(key) || cacheDiff.includes(key))
       .map((key) => ({
         key,
-        value:
-          sourceFile.type === 'key-based' ? sourceFile.content[key] : key,
+        value: sourceFile.type === 'key-based' ? sourceFile.content[key] : key,
       }));
 
     const unusedStrings = existingKeys.filter(
@@ -438,13 +453,12 @@ function createTranslator(
     );
 
     if (service !== 'dry-run') {
-      const existingTranslations = destinationFile ? destinationFile.content : {};
+      const existingTranslations = destinationFile
+        ? destinationFile.content
+        : {};
 
       const translatedFile = {
-        ...omit(
-          existingTranslations,
-          deleteUnusedStrings ? unusedStrings : [],
-        ),
+        ...omit(existingTranslations, deleteUnusedStrings ? unusedStrings : []),
         ...newKeys,
       };
 
@@ -458,11 +472,18 @@ function createTranslator(
         ) + `\n`;
 
       fs.writeFileSync(
-        path.resolve(evaluateFilePath(workingDir, dirStructure, targetLang), sourceFile.name),
+        path.resolve(
+          evaluateFilePath(workingDir, dirStructure, targetLang),
+          sourceFile.name,
+        ),
         newContent,
       );
 
-      const languageCachePath = evaluateFilePath(cacheDir, dirStructure, targetLang);
+      const languageCachePath = evaluateFilePath(
+        cacheDir,
+        dirStructure,
+        targetLang,
+      );
       if (!fs.existsSync(languageCachePath)) {
         fs.mkdirSync(languageCachePath);
       }
@@ -475,15 +496,15 @@ function createTranslator(
     console.log(
       deleteUnusedStrings && unusedStrings.length > 0
         ? chalk` ({green.bold +${String(
-          translatedStrings.length,
-        )}}/{red.bold -${String(unusedStrings.length)}})`
+            translatedStrings.length,
+          )}}/{red.bold -${String(unusedStrings.length)}})`
         : chalk` ({green.bold +${String(translatedStrings.length)}})`,
     );
 
     // Added translations and removed translations
     return [
       translatedStrings.length,
-      deleteUnusedStrings ? unusedStrings.length : 0
+      deleteUnusedStrings ? unusedStrings.length : 0,
     ];
-  }
+  };
 }
