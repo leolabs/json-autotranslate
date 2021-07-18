@@ -9,7 +9,7 @@ import * as path from 'path';
 import { diff } from 'deep-object-diff';
 import ncp from 'ncp';
 
-import { serviceMap } from './services';
+import { serviceMap, TranslationService } from './services';
 import {
   loadTranslations,
   getAvailableLanguages,
@@ -396,7 +396,7 @@ translate(
 });
 
 function createTranslator(
-  translationService: typeof serviceMap[any],
+  translationService: TranslationService,
   service: keyof typeof serviceMap,
   sourceLang: string,
   targetLang: string,

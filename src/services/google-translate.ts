@@ -10,6 +10,7 @@ import { TranslationService, TString } from '.';
 // Contains replacements for language codes
 const codeMap = {
   'zh-tw': 'zh-TW',
+  'zh-cn': 'zh-CN',
 };
 
 export class GoogleTranslate implements TranslationService {
@@ -50,12 +51,11 @@ export class GoogleTranslate implements TranslationService {
   }
 
   supportsLanguage(language: string) {
-    return this.supportedLanguages.includes(language);
+    return this.supportedLanguages.includes(language.toLowerCase());
   }
 
   cleanLanguageCode(languageCode: string) {
     const lowerCaseCode = languageCode.toLowerCase();
-    console.log('Lower case:', languageCode);
 
     if (codeMap[lowerCaseCode]) {
       return codeMap[lowerCaseCode];
