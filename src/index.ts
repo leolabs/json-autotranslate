@@ -474,7 +474,7 @@ function createTranslator(
       fs.writeFileSync(
         path.resolve(
           evaluateFilePath(workingDir, dirStructure, targetLang),
-          sourceFile.name,
+          destinationFile.name,
         ),
         newContent,
       );
@@ -488,7 +488,7 @@ function createTranslator(
         fs.mkdirSync(languageCachePath);
       }
       fs.writeFileSync(
-        path.resolve(languageCachePath, sourceFile.name),
+        path.resolve(languageCachePath, destinationFile.name),
         JSON.stringify(translatedFile, null, 2) + '\n',
       );
     }
