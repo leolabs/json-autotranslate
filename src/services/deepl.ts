@@ -16,6 +16,7 @@ export class DeepL implements TranslationService {
   private supportedLanguages: Set<string>;
   private interpolationMatcher: Matcher;
   private decodeEscapes: boolean;
+  private formality: "default" | "less" | "more";
 
   async initialize(
     config?: string,
@@ -25,8 +26,9 @@ export class DeepL implements TranslationService {
     if (!config) {
       throw new Error(`Please provide an API key for DeepL.`);
     }
-
-    this.apiKey = config;
+    const [apiKey, formality] = config.split(',');
+    this.apiKey = apiKey;
+    this.formality = (formality && (formality == "less" || formality == "more")) ? formality : "default" ;
     this.interpolationMatcher = interpolationMatcher;
     this.supportedLanguages = await this.fetchLanguages();
     this.decodeEscapes = decodeEscapes;
@@ -86,6 +88,7 @@ export class DeepL implements TranslationService {
     url.searchParams.append('source_lang', from.toUpperCase());
     url.searchParams.append('target_lang', to.toUpperCase());
     url.searchParams.append('auth_key', this.apiKey);
+    url.searchParams.append('formality', this.formality);
 
     const response = await fetch(String(url));
 
