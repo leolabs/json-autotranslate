@@ -179,6 +179,18 @@ DeepL Free is limited to 500,000 characters translated per month.
 After you have completed your sign-up, you can pass the API key to
 json-autotranslate using the `-c` or `--config` option.
 
+You can also provide a formality by adding it to the config string after the API
+key, separated by a comma: `--config apiKey,formality`. This feature currently 
+only works for target languages "DE" (German), "FR" (French), "IT" (Italian), 
+"ES" (Spanish), "NL" (Dutch), "PL" (Polish), "PT-PT", "PT-BR" (Portuguese) and
+"RU" (Russian).Possible options are:
+
+> "default" (default)
+> "more" - for a more formal language
+> "less" - for a more informal language
+
+<sup><a href="https://www.deepl.com/de/docs-api/translating-text/">Reference</a></sup>
+
 ### Azure Translator Text
 
 To use this tool with Azure's Translator Text, you need to obtain an API key
