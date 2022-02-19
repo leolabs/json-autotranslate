@@ -114,7 +114,8 @@ export class AmazonTranslate implements TranslationService {
     interpolationMatcher?: Matcher,
     decodeEscapes?: boolean,
   ) {
-    this.translate = new Translate(fs.readFileSync(config).toJSON());
+    const configJson = JSON.parse(fs.readFileSync(config).toString());
+    this.translate = new Translate(configJson);
 
     this.interpolationMatcher = interpolationMatcher;
     this.supportedLanguages = supportedLanguages;
