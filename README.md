@@ -2,9 +2,9 @@
 
 This tool allows you to translate a locale folder containing multiple JSON files
 into multiple languages using Google Translate, DeepL (free/pro), Azure
-Translator, or manually. You can either use the translation keys (natural
-translation) or their values (key-based translation) as a source for
-translations.
+Translator, Amazon Translate, or manually. You can either use the translation
+keys (natural translation) or their values (key-based translation) as a source
+for translations.
 
 If some of the strings have already been translated, they won't be translated
 again. This improves performance and ensures that you won't accidentally lose
@@ -136,6 +136,8 @@ As of this release, json-autotranslate offers five services:
 - **azure** (uses Azure's
   [Translator Text](https://azure.microsoft.com/en-us/services/cognitive-services/translator-text-api/)
   to translate strings)
+- **amazon-translate** (uses
+  [Amazon Translate](https://aws.amazon.com/translate/) to translate strings)
 - **manual** (allows you to translate strings manually by entering them into the
   CLI)
 - **dry-run** (outputs a list of strings that will be translated without
@@ -180,14 +182,13 @@ After you have completed your sign-up, you can pass the API key to
 json-autotranslate using the `-c` or `--config` option.
 
 You can also provide a formality by adding it to the config string after the API
-key, separated by a comma: `--config apiKey,formality`. This feature currently 
-only works for target languages "DE" (German), "FR" (French), "IT" (Italian), 
+key, separated by a comma: `--config apiKey,formality`. This feature currently
+only works for target languages "DE" (German), "FR" (French), "IT" (Italian),
 "ES" (Spanish), "NL" (Dutch), "PL" (Polish), "PT-PT", "PT-BR" (Portuguese) and
 "RU" (Russian).Possible options are:
 
-> "default" (default)
-> "more" - for a more formal language
-> "less" - for a more informal language
+> "default" (default) "more" - for a more formal language "less" - for a more
+> informal language
 
 <sup><a href="https://www.deepl.com/de/docs-api/translating-text/">Reference</a></sup>
 
@@ -213,6 +214,25 @@ following regions are available:
 
 As of now, the first 2M characters of translation per month are free. After that
 you'll have to pay \$10 per 1M characters that you translate.
+
+### Amazon Translate
+
+- Create an AWS account
+- Create an IAM user with [] permissions for Amazon Translate
+- Download credentials for the user and configure them in the globla credentials
+  file
+- Create a json configuration file that defines the AWS region you want to use
+  Translate in.
+
+You can provide a path to the json configuration file via the `--config` flag.
+You may define any properties from
+[TranslateClientConfig](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-translate/interfaces/translateclientconfig.html)
+and they will be passed as the first argument to the
+[Translate Constructor](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-translate/classes/translate.html#constructor).
+At a minimum, this must include the AWS region.
+
+Amazon Translate offers a free tier, but is paid after that. See their
+[pricing](https://aws.amazon.com/translate/pricing/) page for details.
 
 ### Manual
 
