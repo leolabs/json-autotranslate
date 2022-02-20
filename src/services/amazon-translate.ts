@@ -114,7 +114,7 @@ export class AmazonTranslate implements TranslationService {
     interpolationMatcher?: Matcher,
     decodeEscapes?: boolean,
   ) {
-    const configJson = JSON.parse(fs.readFileSync(config).toString());
+    const configJson = config ? JSON.parse(fs.readFileSync(config).toString()) : {};
     this.translate = new Translate(configJson);
 
     this.interpolationMatcher = interpolationMatcher;
@@ -143,6 +143,10 @@ export class AmazonTranslate implements TranslationService {
           value,
           this.interpolationMatcher,
         );
+
+        // After translation, a space is removed before escaped tags.
+        // I don't know why this happens, but this fixes it.
+        replacements.forEach(replacement => replacement.from = ` ${replacement.from}`)
 
         const { TranslatedText } = await this.translate.translateText({
           Text: clean,
