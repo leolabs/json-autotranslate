@@ -5,109 +5,89 @@ import {
   Matcher, reInsertInterpolations, replaceInterpolations
 } from '../matchers';
 import fs from 'fs';
-
-// Contains replacements for language codes
-const codeMap = {
-  'zh-tw': 'zh-TW',
-  'fa-af': 'fa-AF',
-  'fr-ca': 'fr-CA',
-  'pt-pt': 'pt-PT',
-  'es-mx': 'es-MX',
-};
-
-const supportedLanguages = [
-  'af',
-  'sq',
-  'am',
-  'ar',
-  'hy',
-  'az',
-  'bn',
-  'bs',
-  'bg',
-  'ca',
-  'zh',
-  'zh-tw',
-  'hr',
-  'cs',
-  'da',
-  'fa-af',
-  'nl',
-  'en',
-  'et',
-  'fa',
-  'tl',
-  'fi',
-  'fr',
-  'fr-ca',
-  'ka',
-  'de',
-  'el',
-  'gu',
-  'ht',
-  'ha',
-  'he',
-  'hi',
-  'hu',
-  'is',
-  'id',
-  'ga',
-  'it',
-  'ja',
-  'kn',
-  'kk',
-  'ko',
-  'lv',
-  'lt',
-  'mk',
-  'ms',
-  'ml',
-  'mt',
-  'mr',
-  'mn',
-  'no',
-  'ps',
-  'pl',
-  'pt',
-  'pt-pt',
-  'pa',
-  'ro',
-  'ru',
-  'sr',
-  'si',
-  'sk',
-  'sl',
-  'so',
-  'es',
-  'es-mx',
-  'sw',
-  'sv',
-  'ta',
-  'te',
-  'th',
-  'tr',
-  'uk',
-  'ur',
-  'uz',
-  'vi',
-  'cy',
-]
-
 export class AmazonTranslate implements TranslationService {
   private translate: Translate;
   private interpolationMatcher: Matcher;
-  private supportedLanguages: string[] = [];
+  private supportedLanguages: object = {
+    'af': 'af',
+    'sq': 'sq',
+    'am': 'am',
+    'ar': 'ar',
+    'hy': 'hy',
+    'az': 'az',
+    'bn': 'bn',
+    'bs': 'bs',
+    'bg': 'bg',
+    'ca': 'ca',
+    'zh': 'zh',
+    'zh-tw': 'zh-TW',
+    'hr': 'hr',
+    'cs': 'cs',
+    'da': 'da',
+    'fa-af': 'fa-AF',
+    'nl': 'nl',
+    'en': 'en',
+    'et': 'et',
+    'fa': 'fa',
+    'tl': 'tl',
+    'fi': 'fi',
+    'fr': 'fr',
+    'fr-ca': 'fr-CA',
+    'ka': 'ka',
+    'de': 'de',
+    'el': 'el',
+    'gu': 'gu',
+    'ht': 'ht',
+    'ha': 'ha',
+    'he': 'he',
+    'hi': 'hi',
+    'hu': 'hu',
+    'is': 'is',
+    'id': 'id',
+    'ga': 'ga',
+    'it': 'it',
+    'ja': 'ja',
+    'kn': 'kn',
+    'kk': 'kk',
+    'ko': 'ko',
+    'lv': 'lv',
+    'lt': 'lt',
+    'mk': 'mk',
+    'ms': 'ms',
+    'ml': 'ml',
+    'mt': 'mt',
+    'mr': 'mr',
+    'mn': 'mn',
+    'no': 'no',
+    'ps': 'ps',
+    'pl': 'pl',
+    'pt': 'pt',
+    'pt-pt': 'pt-PT',
+    'pa': 'pa',
+    'ro': 'ro',
+    'ru': 'ru',
+    'sr': 'sr',
+    'si': 'si',
+    'sk': 'sk',
+    'sl': 'sl',
+    'so': 'so',
+    'es': 'es',
+    'es-mx': 'es-MX',
+    'sw': 'sw',
+    'sv': 'sv',
+    'ta': 'ta',
+    'te': 'te',
+    'th': 'th',
+    'tr': 'tr',
+    'uk': 'uk',
+    'ur': 'ur',
+    'uz': 'uz',
+    'vi': 'vi',
+    'cy': 'cy',
+  };
   private decodeEscapes: boolean;
 
   public name = 'Amazon Translate';
-
-  cleanResponse(response: string) {
-    const translated = response.replace(
-      /\<(.+?)\s*\>\s*(.+?)\s*\<\/\s*(.+?)>/g,
-      '<$1>$2</$3>',
-    );
-    return this.decodeEscapes ? decode(translated) : translated;
-  }
 
   async initialize(
     config?: string,
@@ -118,22 +98,11 @@ export class AmazonTranslate implements TranslationService {
     this.translate = new Translate(configJson);
 
     this.interpolationMatcher = interpolationMatcher;
-    this.supportedLanguages = supportedLanguages;
     this.decodeEscapes = decodeEscapes;
   }
 
   supportsLanguage(language: string) {
-    return this.supportedLanguages.includes(language.toLowerCase());
-  }
-
-  cleanLanguageCode(languageCode: string) {
-    const lowerCaseCode = languageCode.toLowerCase();
-
-    if (codeMap[lowerCaseCode]) {
-      return codeMap[lowerCaseCode];
-    }
-
-    return lowerCaseCode.split('-')[0];
+    return Object.keys(this.supportedLanguages).includes(language.toLowerCase());
   }
 
   async translateStrings(strings: TString[], from: string, to: string) {
@@ -144,22 +113,18 @@ export class AmazonTranslate implements TranslationService {
           this.interpolationMatcher,
         );
 
-        // After translation, a space is removed before escaped tags.
-        // I don't know why this happens, but this fixes it.
-        replacements.forEach(replacement => replacement.from = ` ${replacement.from}`)
-
         const { TranslatedText } = await this.translate.translateText({
           Text: clean,
-          SourceLanguageCode: this.cleanLanguageCode(from),
-          TargetLanguageCode: this.cleanLanguageCode(to),
+          SourceLanguageCode: this.supportedLanguages[from.toLowerCase()],
+          TargetLanguageCode: this.supportedLanguages[to.toLowerCase()],
         });
+
+        const reInsterted = reInsertInterpolations(TranslatedText, replacements);
 
         return {
           key: key,
           value: value,
-          translated: this.cleanResponse(
-            reInsertInterpolations(TranslatedText, replacements),
-          ),
+          translated: this.decodeEscapes ? decode(reInsterted) : reInsterted,
         };
       }),
     );
