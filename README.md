@@ -217,10 +217,34 @@ you'll have to pay \$10 per 1M characters that you translate.
 
 ### Amazon Translate
 
-- Create an AWS account
-- Create an IAM user with [] permissions for Amazon Translate
-- Download credentials for the user and configure them in the globla credentials
-  file
+- [Create an AWS account](https://aws.amazon.com/free)
+- Create an IAM user with
+  [the permissions required for Amazon Translate](https://docs.aws.amazon.com/translate/latest/dg/translate-api-permissions-ref.html).
+  A policy file like the following should work:
+
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "comprehend:DetectDominantLanguage",
+                "translate:TranslateText"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+- [Configure your AWS user credentials](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/setting-credentials-node.html)
+  locally, or wherever you will be running json-autotranslate. There are many
+  ways to do this, but it is best to use something like
+  [shared credentials](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/loading-node-credentials-shared.html).
+  Hard coded credentials should not be used for anything beyond proof of
+  concept.
 - Create a json configuration file that defines the AWS region you want to use
   Translate in.
 
