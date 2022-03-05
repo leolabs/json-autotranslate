@@ -31,6 +31,7 @@
   ],
   "bin": "lib/index.js",
   "dependencies": {
+    "@aws-sdk/client-translate": "^3.52.0",
     "@google-cloud/translate": "^6.0.3",
     "@types/node": "^14.11.2",
     "chalk": "^4.1.0",

@@ -5,6 +5,7 @@ import { DryRun } from './dry-run';
 import { AzureTranslator } from './azure-translator';
 import { ManualTranslation } from './manual';
 import { Matcher } from '../matchers';
+import { AmazonTranslate } from './amazon-translate';
 
 export interface TranslationResult {
   key: string;
@@ -40,4 +41,5 @@ export const serviceMap: {
   'dry-run': new DryRun(),
   azure: new AzureTranslator(),
   manual: new ManualTranslation(),
+  'amazon-translate': new AmazonTranslate(),
 };
