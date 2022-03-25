@@ -320,8 +320,14 @@ const translate = async (
         break;
 
       case 'ngx-translate':
+        const sourceFile = templateFiles.find(
+          (f) => f.name === `${sourceLang}.json`,
+        );
+        if (!sourceFile) {
+          throw new Error('Could not find source file. This is a bug.');
+        }
         const [addedTranslations, removedTranslations] = await translateContent(
-          templateFiles.find((f) => f.name === `${sourceLang}.json`),
+          sourceFile,
           templateFiles.find((f) => f.name === `${language}.json`),
         );
 
@@ -407,7 +413,7 @@ function createTranslator(
 ) {
   return async (
     sourceFile: TranslatableFile,
-    destinationFile: TranslatableFile,
+    destinationFile: TranslatableFile | undefined,
   ) => {
     const cachePath = path.resolve(
       evaluateFilePath(cacheDir, dirStructure, sourceLang),
@@ -474,7 +480,7 @@ function createTranslator(
       fs.writeFileSync(
         path.resolve(
           evaluateFilePath(workingDir, dirStructure, targetLang),
-          destinationFile.name,
+          destinationFile?.name ?? sourceFile.name,
         ),
         newContent,
       );
@@ -488,7 +494,10 @@ function createTranslator(
         fs.mkdirSync(languageCachePath);
       }
       fs.writeFileSync(
-        path.resolve(languageCachePath, destinationFile.name),
+        path.resolve(
+          languageCachePath,
+          destinationFile?.name ?? sourceFile.name,
+        ),
         JSON.stringify(translatedFile, null, 2) + '\n',
       );
     }
