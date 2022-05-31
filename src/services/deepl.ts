@@ -34,7 +34,7 @@ export class DeepL implements TranslationService {
     this.interpolationMatcher = interpolationMatcher;
     const languages = await this.fetchLanguages();
     this.supportedLanguages = this.formatLanguages(languages);
-    this.formalityLanguages = new Set(['de', 'fr', 'it', 'es', 'pt', 'nl', 'pl', 'pt', 'ru']);
+    this.formalityLanguages = this.getFormalityLanguages(languages);
     this.decodeEscapes = decodeEscapes;
   }
 
