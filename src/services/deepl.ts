@@ -107,7 +107,10 @@ export class DeepL implements TranslationService {
     url.searchParams.append('target_lang', to.toUpperCase());
     url.searchParams.append('auth_key', this.apiKey);
     url.searchParams.append('auth_key', this.apiKey);
-    url.searchParams.append('formality', this.formality);
+    if (this.supportsFormality(to)) {
+      //only append formality to avoid bad request error from deepl for languages with unsupported formality
+      url.searchParams.append('formality', this.formality);
+    }
 
     const response = await fetch(String(url));
 
