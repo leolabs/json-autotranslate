@@ -14,6 +14,7 @@ export class DeepL implements TranslationService {
   public name = 'DeepL';
   private apiKey: string;
   private supportedLanguages: Set<string>;
+  private formalityLanguages: Set<string>;
   private interpolationMatcher: Matcher;
   private decodeEscapes: boolean;
   private formality: 'default' | 'less' | 'more';
@@ -31,13 +32,16 @@ export class DeepL implements TranslationService {
     this.formality =
       formality === 'less' || formality === 'more' ? formality : 'default';
     this.interpolationMatcher = interpolationMatcher;
-    this.supportedLanguages = await this.fetchLanguages();
+    const languages = await this.fetchLanguages();
+    this.supportedLanguages = this.formatLanguages(languages);
+    this.formalityLanguages = new Set(['de', 'fr', 'it', 'es', 'pt', 'nl', 'pl', 'pt', 'ru']);
     this.decodeEscapes = decodeEscapes;
   }
 
   async fetchLanguages() {
     const url = new URL(`${API_ENDPOINT}/languages`);
     url.searchParams.append('auth_key', this.apiKey);
+    url.searchParams.append('type', 'target');
 
     const response = await fetch(url.toString());
 
@@ -48,8 +52,17 @@ export class DeepL implements TranslationService {
     const languages: Array<{
       language: string;
       name: string;
+      supports_formality: boolean;
     }> = await response.json();
+    return languages;
+  }
 
+  getFormalityLanguages(languages: Array<{ language: string, name: string, supports_formality: boolean}>) {
+    const supportedLangauges = languages.filter((l) => l.supports_formality);
+    return this.formatLanguages(supportedLangauges);
+  }
+
+  formatLanguages(languages: Array<{ language: string, name: string, supports_formality: boolean}>) {
     // DeepL supports e.g. either EN-US or EN as language code, but only returns EN-US
     // so we add both variants to the array and filter duplicates later.
     const languageCodes = languages.flatMap((l) => [
@@ -61,6 +74,10 @@ export class DeepL implements TranslationService {
 
   supportsLanguage(language: string) {
     return this.supportedLanguages.has(language.toLowerCase());
+  }
+
+  supportsFormality(language: string) {
+    return this.formalityLanguages.has(language.toLowerCase());
   }
 
   async translateStrings(
@@ -88,6 +105,7 @@ export class DeepL implements TranslationService {
     url.searchParams.append('text', clean);
     url.searchParams.append('source_lang', from.toUpperCase());
     url.searchParams.append('target_lang', to.toUpperCase());
+    url.searchParams.append('auth_key', this.apiKey);
     url.searchParams.append('auth_key', this.apiKey);
     url.searchParams.append('formality', this.formality);
 
