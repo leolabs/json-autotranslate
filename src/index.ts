@@ -207,9 +207,9 @@ const translate = async (
   console.log(`🔍 Looking for invalid keys in source files...`);
   const invalidFiles: string[] = [];
 
-  for (const file of templateFiles.filter((f) => f.type === 'natural')) {
+  for (const file of templateFiles.filter((f) => f.type === 'key-based')) {
     const invalidKeys = Object.keys(file.originalContent).filter(
-      (k) => typeof file.originalContent[k] === 'string' && k.includes('.'),
+      (k) => typeof file.originalContent[k] === 'string' && k.includes(' '),
     );
 
     if (invalidKeys.length > 0) {
