@@ -1,5 +1,5 @@
 import { matchIcu } from './icu';
-import { replaceInterpolations } from '.';
+import { reInsertInterpolations, replaceInterpolations } from '.';
 
 describe('ICU replacer', () => {
   it('should not error when no placeholders are present', () => {
@@ -37,5 +37,38 @@ describe('ICU replacer', () => {
       { from: '{test}', to: '<span translate="no">0</span>' },
       { from: '{placeholders}', to: '<span translate="no">1</span>' },
     ]);
+  });
+
+  it('should replace plural ICU syntax with placeholders', () => {
+    const { clean, replacements } = replaceInterpolations(
+      '{count} {count, plural, =1 {one person} =2 {two people} other {many people}}',
+      matchIcu,
+    );
+    expect(clean).toEqual(
+      '<span translate="no">0</span> <span translate="no">1</span>one person<span translate="no">2</span>two people<span translate="no">3</span>many people<span translate="no">4</span>',
+    );
+    expect(replacements).toEqual([
+      {
+        from: '{count} {count, plural, =1',
+        to: '<span translate="no">0</span>',
+      },
+      {
+        from: '{',
+        to: '<span translate="no">1</span>',
+      },
+      {
+        from: '} =2 {',
+        to: '<span translate="no">2</span>',
+      },
+      {
+        from: '} other {',
+        to: '<span translate="no">3</span>',
+      },
+      {
+        from: '}}',
+        to: '<span translate="no">4</span>',
+      },
+    ]);
+    expect(reInsertInterpolations(clean, replacements)).toEqual('{count} {count, plural, =1 {one person} =2 {two people} other {many people}}')
   });
 });
