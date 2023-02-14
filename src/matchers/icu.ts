@@ -15,7 +15,7 @@ export const matchIcu: Matcher = (
   input: string,
   replacer: (i: number) => string,
 ) => {
-  const writeTokens = (part) => {
+  const writeTokens = (part: ICUMatch) => {
     if (part?.cases?.length) {
       return part.cases
         .map((partCase) => {
@@ -31,7 +31,7 @@ export const matchIcu: Matcher = (
   const nestedIcuMatcher = (parts: ICUMatch[]): string => {
     return (
       parts
-        .map((part: ICUMatch) =>
+        .map((part) =>
           typeof part === 'string'
             ? part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
             : writeTokens(part),
