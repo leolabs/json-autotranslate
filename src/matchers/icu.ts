@@ -16,7 +16,7 @@ export const matchIcu: Matcher = (
   replacer: (i: number) => string,
 ) => {
   const writeTokens = (part: ICUMatch) => {
-    if (part?.cases?.length) {
+    if (typeof part !== 'string' && part?.cases?.length) {
       return part.cases
         .map((partCase) => {
           return partCase.tokens.length
