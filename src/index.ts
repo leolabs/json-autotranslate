@@ -382,7 +382,7 @@ if (commander.listMatchers) {
 
 translate(
   commander.input,
-  commander.cacheDir,
+  commander.cache,
   commander.sourceLanguage,
   commander.deleteUnusedStrings,
   commander.type,
