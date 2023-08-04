@@ -181,14 +181,19 @@ DeepL Free is limited to 500,000 characters translated per month.
 After you have completed your sign-up, you can pass the API key to
 json-autotranslate using the `-c` or `--config` option.
 
-You can also provide a formality by adding it to the config string after the API
-key, separated by a comma: `--config apiKey,formality`. This feature currently
-only works for target languages "DE" (German), "FR" (French), "IT" (Italian),
-"ES" (Spanish), "NL" (Dutch), "PL" (Polish), "PT-PT", "PT-BR" (Portuguese) and
-"RU" (Russian).Possible options are:
+The value of the `--config` argument is a comma separated string with the following: `appKey,formality,batchSize`.
 
-> "default" (default) "more" - for a more formal language "less" - for a more
-> informal language
+The `formality` argument currently only works for target languages "DE" (German), "FR" (French), "IT" (Italian),
+"ES" (Spanish), "NL" (Dutch), "PL" (Polish), "PT-PT", "PT-BR" (Portuguese) and "RU" (Russian). Possible options are:
+
+- "default" (default) 
+- "more" - for a more formal language 
+- "less" - for a more  informal language
+
+To improve performance and prevent DeepL rate-limiting json-autotranslate batches multiple tokens into a single translation request. 
+By default, the `batchSize` is set to `1000`, meaning that `1000` tokens are translated at once. This can be controlled by adjusting the value in the `--config` parameter.
+This value was chosen because the DeepL prevents the body of a request to be larger than `128 KiB (128 · 1024 bytes)``. Based on experimentation, even with long tokens, this limit is not reached.
+
 
 <sup><a href="https://www.deepl.com/de/docs-api/translating-text/">Reference</a></sup>
 
