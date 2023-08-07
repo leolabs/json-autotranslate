@@ -1,6 +1,5 @@
 import { GoogleTranslate } from './google-translate';
 import { DeepL } from './deepl';
-import { DeepLFree } from './deepl-free';
 import { DryRun } from './dry-run';
 import { AzureTranslator } from './azure-translator';
 import { ManualTranslation } from './manual';
@@ -36,8 +35,8 @@ export const serviceMap: {
   [k: string]: TranslationService;
 } = {
   'google-translate': new GoogleTranslate(),
-  deepl: new DeepL(),
-  'deepl-free': new DeepLFree(),
+  deepl: new DeepL(false),
+  'deepl-free': new DeepL(true),
   'dry-run': new DryRun(),
   azure: new AzureTranslator(),
   manual: new ManualTranslation(),
