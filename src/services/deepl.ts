@@ -128,6 +128,10 @@ export class DeepL implements TranslationService {
       text: cleaned.map((c) => c.clean),
       source_lang: from.toUpperCase(),
       target_lang: to.toUpperCase(),
+      // see https://www.deepl.com/docs-api/html/disabling
+      // set in order to indicate to DeepL that the interpolated strings that the matcher
+      // replaced with `<span translate="no">${index}</span> should not be translated
+      tag_handling: 'html',
     };
     if (this.supportsFormality(to)) {
       // only append formality to avoid bad request error from deepl for languages with unsupported formality

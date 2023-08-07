@@ -101,6 +101,10 @@ export class DeepLFree implements TranslationService {
       text: cleaned.map((c) => c.clean),
       source_lang: from.toUpperCase(),
       target_lang: to.toUpperCase(),
+      // see https://www.deepl.com/docs-api/html/disabling
+      // set in order to indicate to DeepL that the interpolated strings that the matcher
+      // replaced with `<span translate="no">${index}</span> should not be translated
+      tag_handling: 'html',
     };
 
     // send request as a POST request, with all the tokens as separate texts in the body
