@@ -8,10 +8,24 @@ import {
   Matcher,
 } from '../matchers';
 
-const API_ENDPOINT = 'https://api.deepl.com/v2';
-
 export class DeepL implements TranslationService {
-  public name = 'DeepL';
+  public name: string;
+  private apiEndpoint: string;
+
+  /**
+   * Creates a new instance of the DeepL translation service
+   * @param useFreeApi Use the free vs paid api
+   */
+  constructor(useFreeApi: boolean) {
+    if(useFreeApi) {
+      this.name = 'DeepL Free';
+      this.apiEndpoint = 'https://api-free.deepl.com/v2';
+    } else {
+      this.name = 'DeepL';
+      this.apiEndpoint = 'https://api.deepl.com/v2';
+    }
+  }
+
   private apiKey: string;
   /**
    * Number to tokens to translate at once
@@ -29,7 +43,7 @@ export class DeepL implements TranslationService {
     decodeEscapes?: boolean,
   ) {
     if (!config) {
-      throw new Error(`Please provide an API key for DeepL.`);
+      throw new Error(`Please provide an API key for ${this.name}.`);
     }
     const [apiKey, formality, batchSize] = config.split(',');
     this.apiKey = apiKey;
@@ -44,7 +58,7 @@ export class DeepL implements TranslationService {
   }
 
   async fetchLanguages() {
-    const url = new URL(`${API_ENDPOINT}/languages`);
+    const url = new URL(`${this.apiEndpoint}/languages`);
     url.searchParams.append('auth_key', this.apiKey);
     url.searchParams.append('type', 'target');
 
@@ -69,8 +83,8 @@ export class DeepL implements TranslationService {
       supports_formality: boolean;
     }>,
   ) {
-    const supportedLangauges = languages.filter((l) => l.supports_formality);
-    return this.formatLanguages(supportedLangauges);
+    const supportedLanguages = languages.filter((l) => l.supports_formality);
+    return this.formatLanguages(supportedLanguages);
   }
 
   formatLanguages(
@@ -139,7 +153,7 @@ export class DeepL implements TranslationService {
     }
 
     // send request as a POST request, with all the tokens as separate texts in the body
-    const response = await fetch(`${API_ENDPOINT}/translate`, {
+    const response = await fetch(`${this.apiEndpoint}/translate`, {
       body: JSON.stringify(body),
       method: 'POST',
       headers: {
