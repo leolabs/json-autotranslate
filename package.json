@@ -37,7 +37,7 @@
     "commander": "^6.1.0",
     "deep-object-diff": "^1.1.0",
     "dotenv": "^8.2.0",
-    "flattenjs": "^2.0.0",
+    "flat": "^5.0.2",
     "html-entities": "^2.3.2",
     "inquirer": "^7.3.3",
     "lodash": "^4.17.20",
@@ -47,6 +47,7 @@
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
+    "@types/flat": "^5.0.2",
     "@types/inquirer": "^7.3.1",
     "@types/jest": "^26.0.14",
     "@types/lodash": "^4.14.161",
