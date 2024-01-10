@@ -44,6 +44,7 @@ export const detectFileType = (json: any): FileType => {
 export const loadTranslations = (
   directory: string,
   fileType: FileType = 'auto',
+  withArrays = false,
 ) =>
   fs
     .readdirSync(directory)
@@ -58,7 +59,9 @@ export const loadTranslations = (
         type,
         content:
           type === 'key-based'
-            ? flatten(require(path.resolve(directory, f)), { safe: true })
+            ? flatten(require(path.resolve(directory, f)), {
+                safe: !withArrays,
+              })
             : require(path.resolve(directory, f)),
       } as TranslatableFile;
     });

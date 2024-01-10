@@ -46,6 +46,10 @@ commander
     'auto',
   )
   .option(
+    '-a, --with-arrays',
+    `enables support for arrays in files, but removes support for keys named 0, 1, 2, etc.`,
+  )
+  .option(
     '-s, --service <service>',
     `selects the service to be used for translation`,
     'google-translate',
@@ -85,6 +89,7 @@ const translate = async (
   sourceLang: string = 'en',
   deleteUnusedStrings = false,
   fileType: FileType = 'auto',
+  withArrays: boolean = false,
   dirStructure: DirectoryStructure = 'default',
   fixInconsistencies = false,
   service: keyof typeof serviceMap = 'google-translate',
@@ -122,7 +127,11 @@ const translate = async (
     sourceLang,
   );
 
-  const templateFiles = loadTranslations(templateFilePath, fileType);
+  const templateFiles = loadTranslations(
+    templateFilePath,
+    fileType,
+    withArrays,
+  );
 
   if (templateFiles.length === 0) {
     throw new Error(
@@ -275,6 +284,7 @@ const translate = async (
         const existingFiles = loadTranslations(
           evaluateFilePath(workingDir, dirStructure, language),
           fileType,
+          withArrays,
         );
 
         if (deleteUnusedStrings) {
@@ -386,6 +396,7 @@ translate(
   commander.sourceLanguage,
   commander.deleteUnusedStrings,
   commander.type,
+  commander.withArrays,
   commander.directoryStructure,
   commander.fixInconsistencies,
   commander.service,
