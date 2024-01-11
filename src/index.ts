@@ -277,6 +277,7 @@ const translate = async (
       workingDir,
       dirStructure,
       deleteUnusedStrings,
+      withArrays,
     );
 
     switch (dirStructure) {
@@ -421,6 +422,7 @@ function createTranslator(
   workingDir: string,
   dirStructure: DirectoryStructure,
   deleteUnusedStrings: boolean,
+  withArrays: boolean,
 ) {
   return async (
     sourceFile: TranslatableFile,
@@ -482,7 +484,7 @@ function createTranslator(
       const newContent =
         JSON.stringify(
           sourceFile.type === 'key-based'
-            ? unflatten(translatedFile, { object: true })
+            ? unflatten(translatedFile, { object: !withArrays })
             : translatedFile,
           null,
           2,
