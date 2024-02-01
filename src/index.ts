@@ -54,6 +54,9 @@ commander
     `selects the service to be used for translation`,
     'google-translate',
   )
+  .option('--glossaries <glossariesFolder>',
+    `adds glossaries to be used by deepl`,
+    './i18n/glossaries')
   .option('--list-services', `outputs a list of available services`)
   .option(
     '-m, --matcher <matcher>',
@@ -96,6 +99,7 @@ const translate = async (
   matcher: keyof typeof matcherMap = 'icu',
   decodeEscapes = false,
   config?: string,
+  glossaries?: string
 ) => {
   const workingDir = path.resolve(process.cwd(), inputDir);
   const resolvedCacheDir = path.resolve(process.cwd(), cacheDir);
@@ -159,6 +163,7 @@ const translate = async (
     config,
     matcherMap[matcher],
     decodeEscapes,
+    glossaries
   );
   console.log(chalk`└── {green.bold Done}`);
   console.log();
@@ -404,6 +409,7 @@ translate(
   commander.matcher,
   commander.decodeEscapes,
   commander.config,
+  commander.glossaries
 ).catch((e: Error) => {
   console.log();
   console.log(chalk.bgRed('An error has occurred:'));

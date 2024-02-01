@@ -22,6 +22,7 @@ export interface TranslationService {
     config?: string,
     interpolationMatcher?: Matcher,
     decodeEscapes?: boolean,
+    addGlossariesFolder?: string
   ) => Promise<void>;
   supportsLanguage: (language: string) => boolean;
   translateStrings: (
@@ -42,3 +43,17 @@ export const serviceMap: {
   manual: new ManualTranslation(),
   'amazon-translate': new AmazonTranslate(),
 };
+
+export interface MetaGlossaries extends Response{
+  glossary_id: string,
+  name: string,
+  ready: boolean,
+  source_lang: string,
+  target_lang: string,
+  creation_time: string,
+  entry_count: string
+}
+
+export interface ListGlossaries {
+  glossaries : MetaGlossaries[]
+}
