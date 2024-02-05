@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 import * as path from 'path';
 import * as fs from 'fs';
 
-import { TranslationService, TranslationResult, MetaGlossaries, ListGlossaries } from '.';
+import { TranslationService, TranslationResult, DeepLGlossary } from '.';
 import {
   replaceInterpolations,
   reInsertInterpolations,
@@ -13,7 +13,8 @@ import {
 export class DeepL implements TranslationService {
   public name: string;
   private apiEndpoint: string;
-  private addGlossariesFolder: string;
+  private glossariesDir: string;
+  private appName: string;
   private apiKey: string;
   /**
    * Number to tokens to translate at once
@@ -43,7 +44,8 @@ export class DeepL implements TranslationService {
     config?: string,
     interpolationMatcher?: Matcher,
     decodeEscapes?: boolean,
-    addGlossariesFolder?: string,
+    glossariesDir?: string,
+    appName?: string,
   ) {
     if (!config) {
       throw new Error(`Please provide an API key for ${this.name}.`);
@@ -58,20 +60,18 @@ export class DeepL implements TranslationService {
     this.supportedLanguages = this.formatLanguages(languages);
     this.formalityLanguages = this.getFormalityLanguages(languages);
     this.decodeEscapes = decodeEscapes;
-    this.addGlossariesFolder = addGlossariesFolder;
+    this.glossariesDir = glossariesDir;
+    this.appName = appName;
   }
 
   async fetchLanguages() {
     const url = new URL(`${this.apiEndpoint}/languages`);
     url.searchParams.append('auth_key', this.apiKey);
     url.searchParams.append('type', 'target');
-
     const response = await fetch(url.toString());
-
     if (!response.ok) {
       throw new Error('Could not fetch supported languages from DeepL');
     }
-
     const languages: Array<{
       language: string;
       name: string;
@@ -132,23 +132,29 @@ export class DeepL implements TranslationService {
     return responses;
   }
 
-  async addGlossariesFromFolder() {
-    const files = fs.readdirSync(this.addGlossariesFolder);
-    const existingGlossaries = await this.listAllGlossaries()
+  /**
+   * Delete existing glossaries of this app and re-create them. (DeepL does not allow editing glossaries).
+   */
+  async syncGlossaries() {
+    // Delete all existing glossaries of this app:
+    const existingGlossaries = await this.listGlossaries().then((glossaries) =>
+      glossaries.filter((g) => g.name === this.appName),
+    );
+    console.log(existingGlossaries);
 
-    if(existingGlossaries.length > 0){
-      // Delete all existing glossaries before adding any
-      for (const glossary of existingGlossaries){
-        await this.deleteGlossary(glossary.glossary_id)
-        console.log(`Deleting glossary ${glossary.glossary_id}`)
+    if (existingGlossaries.length > 0) {
+      for (const glossary of existingGlossaries) {
+        await this.deleteGlossary(glossary.glossary_id);
+        console.log(`Deleting glossary ${glossary.glossary_id}`);
       }
     }
-
-    const responses: MetaGlossaries[] = [];
+    // Add all glossaries found in glossaries directory:
+    const responses: DeepLGlossary[] = [];
+    const files = fs.readdirSync(this.glossariesDir);
     for (const file of files) {
-      const filePath = path.join(this.addGlossariesFolder, file);
+      const filePath = path.join(this.glossariesDir, file);
       if (fs.statSync(filePath).isFile() && path.extname(file) === '.json') {
-        const response = await this.addGlossariesFromFile(filePath);
+        const response = await this.createGlossaryFromFile(filePath);
         if (response) {
           responses.push(response);
           console.log(`Glossary added for file: ${file}`);
@@ -160,62 +166,66 @@ export class DeepL implements TranslationService {
     return responses;
   }
 
-  async deleteGlossary(glossary_id:string){
-    const response = await fetch(`${this.apiEndpoint}/glossaries/${glossary_id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `DeepL-Auth-Key ${this.apiKey}`,
-        'Content-Type': 'application/json',
+  async deleteGlossary(glossary_id: string) {
+    const response = await fetch(
+      `${this.apiEndpoint}/glossaries/${glossary_id}`,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `DeepL-Auth-Key ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
       },
-    })
-    if (!response.ok){
-      throw new Error(`The request to delete ${glossary_id} failed with error code: ${response.status} : ${response.statusText}`);
+    );
+    if (!response.ok) {
+      throw new Error(
+        `The request to delete ${glossary_id} failed with error code: ${response.status} : ${response.statusText}`,
+      );
     }
+    return response;
   }
 
-  async listAllGlossaries() {
+  async listGlossaries() {
     const response = await fetch(`${this.apiEndpoint}/glossaries`, {
-      method: "GET",
+      method: 'GET',
       headers: {
         Authorization: `DeepL-Auth-Key ${this.apiKey}`,
         'Content-Type': 'application/json',
       },
-    })
-    if (response.ok) {
-      const responseData: ListGlossaries  = await response.json()
-      const glossaries = responseData.glossaries.map(glossary => ({
-        glossary_id: glossary.glossary_id,
-        name: glossary.name,
-        ready: glossary.ready,
-        source_lang: glossary.source_lang,
-        target_lang: glossary.target_lang,
-        creation_time: glossary.creation_time,
-        entry_count: glossary.entry_count
-      }));
-      return glossaries
+    });
+    if (!response.ok) {
+      throw new Error(
+        `The request to list glossaries failed with error code: ${response.status} : ${response.statusText}`,
+      );
     }
-    throw new Error(`The request to list glossaries failed with error code: ${response.status} : ${response.statusText}`);
+    const { glossaries } = await response.json();
+    return glossaries as DeepLGlossary[];
   }
 
-  async addGlossariesFromFile(filePath: string) {
+  /**
+   * https://www.deepl.com/docs-api/glossaries/create-glossary
+   */
+  async createGlossaryFromFile(filePath: string) {
     // Extract source and target language from the file name
     const fileName = path.basename(filePath, '.json');
     const [sourceLang, targetLang] = fileName.split('-');
     const fileContent = fs.readFileSync(filePath, 'utf-8');
-
+    // Create TSV file:
     let entries = '';
-    for (const [sourceEntry, targetEntry] of Object.entries(JSON.parse(fileContent))) {
+    for (const [sourceEntry, targetEntry] of Object.entries(
+      JSON.parse(fileContent),
+    )) {
       entries += `${sourceEntry}\t${targetEntry}\n`;
     }
-
+    // Create the request body:
     const body = {
-      name: fileName,
+      name: this.appName,
       source_lang: sourceLang.toLowerCase(),
       target_lang: targetLang.toLowerCase(),
       entries: entries,
       entries_format: 'tsv',
     };
-
+    // Add the glossary:
     const response = await fetch(`${this.apiEndpoint}/glossaries`, {
       body: JSON.stringify(body),
       method: 'POST',
@@ -224,12 +234,29 @@ export class DeepL implements TranslationService {
         'Content-Type': 'application/json',
       },
     });
-
-    if (response.ok) {
-      const responseData : MetaGlossaries = await response.json()
-      return responseData
+    if (!response.ok) {
+      throw new Error(
+        `The request to create glossaries failed with error code: ${response.status} : ${response.statusText}`,
+      );
     }
-    throw new Error(`The request to create glossaries failed with error code: ${response.status} : ${response.statusText}`);
+    const glossary = await response.json();
+    return glossary as DeepLGlossary;
+  }
+
+  async getGlossary(from: string, to: string) {
+    const glossaries = await this.syncGlossaries();
+    const glossary = glossaries.find(
+      (g) =>
+        g.source_lang === from.toLowerCase() &&
+        g.target_lang === to.toLowerCase(),
+    );
+    if (!glossary) {
+      throw new Error(`Could not find matching glossary for ${from} -> ${to}`);
+    }
+    if (!glossary.ready) {
+      throw new Error(`${from} -> ${to} glossary is not ready yet.`);
+    }
+    return glossary as DeepLGlossary;
   }
 
   async runTranslation(
@@ -241,15 +268,13 @@ export class DeepL implements TranslationService {
     const cleaned = strings.map((s) =>
       replaceInterpolations(s.value, this.interpolationMatcher),
     );
-    // Find glossaries that match the source and target language
-    const glossaries = await this.addGlossariesFromFolder();
-    const matchingGlossaryID = glossaries.find(glossary => glossary.source_lang === from.toLowerCase() && glossary.target_lang === to.toLowerCase())?.glossary_id;
-
+    // Find the glossary that matches the source and target language:
+    const glossary = await this.getGlossary(from, to);
     const body = {
       text: cleaned.map((c) => c.clean),
       source_lang: from.toUpperCase(),
       target_lang: to.toUpperCase(),
-      glossary_id: matchingGlossaryID,
+      glossary_id: glossary.glossary_id,
       // see https://www.deepl.com/docs-api/html/disabling
       // set in order to indicate to DeepL that the interpolated strings that the matcher
       // replaced with `<span translate="no">${index}</span> should not be translated
@@ -259,7 +284,6 @@ export class DeepL implements TranslationService {
       // only append formality to avoid bad request error from deepl for languages with unsupported formality
       body['formality'] = this.formality;
     }
-
     // send request as a POST request, with all the tokens as separate texts in the body
     const response = await fetch(`${this.apiEndpoint}/translate`, {
       body: JSON.stringify(body),
@@ -269,7 +293,6 @@ export class DeepL implements TranslationService {
         'Content-Type': 'application/json',
       },
     });
-
     if (!response.ok) {
       // automatically retry the translation if DeepL rate-limits us
       // see https://support.deepl.com/hc/en-us/articles/360020710619-Error-code-429
@@ -285,13 +308,10 @@ export class DeepL implements TranslationService {
     }
     // the response is indexed similarly to the texts parameter in the body
     const responseTranslations = (await response.json()).translations;
-
     const translated = cleaned.map(async (c, index) =>
       reInsertInterpolations(responseTranslations[index].text, c.replacements),
     );
-
     const result: TranslationResult[] = [];
-
     // match the strings to be translated with their retrieved translations
     for (let index = 0; index < strings.length; index++) {
       const string = strings[index];
