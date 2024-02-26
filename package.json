@@ -8,7 +8,6 @@
     "start": "ts-node src/index.ts",
     "test": "jest",
     "build": "tsc",
-    "postinstall": "npm i && tsc",
     "prepublishOnly": "tsc"
   },
   "author": {

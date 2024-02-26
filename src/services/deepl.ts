@@ -68,10 +68,13 @@ export class DeepL implements TranslationService {
     const url = new URL(`${this.apiEndpoint}/languages`);
     url.searchParams.append('auth_key', this.apiKey);
     url.searchParams.append('type', 'target');
+
     const response = await fetch(url.toString());
+
     if (!response.ok) {
       throw new Error('Could not fetch supported languages from DeepL');
     }
+
     const languages: Array<{
       language: string;
       name: string;
@@ -140,8 +143,6 @@ export class DeepL implements TranslationService {
     const existingGlossaries = await this.listGlossaries().then((glossaries) =>
       glossaries.filter((g) => g.name === this.appName),
     );
-    console.log(existingGlossaries);
-
     if (existingGlossaries.length > 0) {
       for (const glossary of existingGlossaries) {
         await this.deleteGlossary(glossary.glossary_id);
@@ -268,6 +269,7 @@ export class DeepL implements TranslationService {
     const cleaned = strings.map((s) =>
       replaceInterpolations(s.value, this.interpolationMatcher),
     );
+
     // Find the glossary that matches the source and target language:
     const glossary = await this.getGlossary(from, to);
     const body = {
@@ -284,6 +286,7 @@ export class DeepL implements TranslationService {
       // only append formality to avoid bad request error from deepl for languages with unsupported formality
       body['formality'] = this.formality;
     }
+
     // send request as a POST request, with all the tokens as separate texts in the body
     const response = await fetch(`${this.apiEndpoint}/translate`, {
       body: JSON.stringify(body),
@@ -293,6 +296,7 @@ export class DeepL implements TranslationService {
         'Content-Type': 'application/json',
       },
     });
+
     if (!response.ok) {
       // automatically retry the translation if DeepL rate-limits us
       // see https://support.deepl.com/hc/en-us/articles/360020710619-Error-code-429
@@ -308,10 +312,13 @@ export class DeepL implements TranslationService {
     }
     // the response is indexed similarly to the texts parameter in the body
     const responseTranslations = (await response.json()).translations;
+
     const translated = cleaned.map(async (c, index) =>
       reInsertInterpolations(responseTranslations[index].text, c.replacements),
     );
+
     const result: TranslationResult[] = [];
+
     // match the strings to be translated with their retrieved translations
     for (let index = 0; index < strings.length; index++) {
       const string = strings[index];

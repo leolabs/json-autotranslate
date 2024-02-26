@@ -57,11 +57,10 @@ commander
   .option(
     '-g, --glossaries <glossariesDir>',
     `set the glossaries folder to be used by DeepL`,
-    './i18n/glossaries',
   )
   .option(
     '-a, --appName <appName>',
-    `specify the name of your app to distinguish DeepL glossaries (if sharing an API key)`,
+    `specify the name of your app to distinguish DeepL glossaries (if sharing an API key between multiple projects)`,
     'json-autotranslate',
   )
   .option('--list-services', `outputs a list of available services`)
