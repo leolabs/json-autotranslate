@@ -1,7 +1,9 @@
 import { decode } from 'html-entities';
 import fetch from 'node-fetch';
+import * as path from 'path';
+import * as fs from 'fs';
 
-import { TranslationService, TranslationResult } from '.';
+import { TranslationService, TranslationResult, DeepLGlossary } from '.';
 import {
   replaceInterpolations,
   reInsertInterpolations,
@@ -11,21 +13,8 @@ import {
 export class DeepL implements TranslationService {
   public name: string;
   private apiEndpoint: string;
-
-  /**
-   * Creates a new instance of the DeepL translation service
-   * @param useFreeApi Use the free vs paid api
-   */
-  constructor(useFreeApi: boolean) {
-    if(useFreeApi) {
-      this.name = 'DeepL Free';
-      this.apiEndpoint = 'https://api-free.deepl.com/v2';
-    } else {
-      this.name = 'DeepL';
-      this.apiEndpoint = 'https://api.deepl.com/v2';
-    }
-  }
-
+  private glossariesDir: string;
+  private appName: string;
   private apiKey: string;
   /**
    * Number to tokens to translate at once
@@ -37,10 +26,26 @@ export class DeepL implements TranslationService {
   private decodeEscapes: boolean;
   private formality: 'default' | 'less' | 'more';
 
+  /**
+   * Creates a new instance of the DeepL translation service
+   * @param useFreeApi Use the free vs paid api
+   */
+  constructor(useFreeApi: boolean) {
+    if (useFreeApi) {
+      this.name = 'DeepL Free';
+      this.apiEndpoint = 'https://api-free.deepl.com/v2';
+    } else {
+      this.name = 'DeepL';
+      this.apiEndpoint = 'https://api.deepl.com/v2';
+    }
+  }
+
   async initialize(
     config?: string,
     interpolationMatcher?: Matcher,
     decodeEscapes?: boolean,
+    glossariesDir?: string,
+    appName?: string,
   ) {
     if (!config) {
       throw new Error(`Please provide an API key for ${this.name}.`);
@@ -55,6 +60,8 @@ export class DeepL implements TranslationService {
     this.supportedLanguages = this.formatLanguages(languages);
     this.formalityLanguages = this.getFormalityLanguages(languages);
     this.decodeEscapes = decodeEscapes;
+    this.glossariesDir = glossariesDir;
+    this.appName = appName;
   }
 
   async fetchLanguages() {
@@ -128,6 +135,131 @@ export class DeepL implements TranslationService {
     return responses;
   }
 
+  /**
+   * Delete existing glossaries of this app and re-create them. (DeepL does not allow editing glossaries).
+   */
+  async syncGlossaries() {
+    // Delete all existing glossaries of this app:
+    const existingGlossaries = await this.listGlossaries().then((glossaries) =>
+      glossaries.filter((g) => g.name === this.appName),
+    );
+    if (existingGlossaries.length > 0) {
+      for (const glossary of existingGlossaries) {
+        await this.deleteGlossary(glossary.glossary_id);
+        console.log(`Deleting glossary ${glossary.glossary_id}`);
+      }
+    }
+    // Add all glossaries found in glossaries directory:
+    const responses: DeepLGlossary[] = [];
+    const files = fs.readdirSync(this.glossariesDir);
+    for (const file of files) {
+      const filePath = path.join(this.glossariesDir, file);
+      if (fs.statSync(filePath).isFile() && path.extname(file) === '.json') {
+        const response = await this.createGlossaryFromFile(filePath);
+        if (response) {
+          responses.push(response);
+          console.log(`Glossary added for file: ${file}`);
+        } else {
+          console.error(`Failed to add glossary for file: ${file}`);
+        }
+      }
+    }
+    return responses;
+  }
+
+  async deleteGlossary(glossary_id: string) {
+    const response = await fetch(
+      `${this.apiEndpoint}/glossaries/${glossary_id}`,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `DeepL-Auth-Key ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+    if (!response.ok) {
+      throw new Error(
+        `The request to delete ${glossary_id} failed with error code: ${response.status} : ${response.statusText}`,
+      );
+    }
+    return response;
+  }
+
+  async listGlossaries() {
+    const response = await fetch(`${this.apiEndpoint}/glossaries`, {
+      method: 'GET',
+      headers: {
+        Authorization: `DeepL-Auth-Key ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(
+        `The request to list glossaries failed with error code: ${response.status} : ${response.statusText}`,
+      );
+    }
+    const { glossaries } = await response.json();
+    return glossaries as DeepLGlossary[];
+  }
+
+  /**
+   * https://www.deepl.com/docs-api/glossaries/create-glossary
+   */
+  async createGlossaryFromFile(filePath: string) {
+    // Extract source and target language from the file name
+    const fileName = path.basename(filePath, '.json');
+    const [sourceLang, targetLang] = fileName.split('-');
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    // Create TSV file:
+    let entries = '';
+    for (const [sourceEntry, targetEntry] of Object.entries(
+      JSON.parse(fileContent),
+    )) {
+      entries += `${sourceEntry}\t${targetEntry}\n`;
+    }
+    // Create the request body:
+    const body = {
+      name: this.appName,
+      source_lang: sourceLang.toLowerCase(),
+      target_lang: targetLang.toLowerCase(),
+      entries: entries,
+      entries_format: 'tsv',
+    };
+    // Add the glossary:
+    const response = await fetch(`${this.apiEndpoint}/glossaries`, {
+      body: JSON.stringify(body),
+      method: 'POST',
+      headers: {
+        Authorization: `DeepL-Auth-Key ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(
+        `The request to create glossaries failed with error code: ${response.status} : ${response.statusText}`,
+      );
+    }
+    const glossary = await response.json();
+    return glossary as DeepLGlossary;
+  }
+
+  async getGlossary(from: string, to: string) {
+    const glossaries = await this.syncGlossaries();
+    const glossary = glossaries.find(
+      (g) =>
+        g.source_lang === from.toLowerCase() &&
+        g.target_lang === to.toLowerCase(),
+    );
+    if (!glossary) {
+      throw new Error(`Could not find matching glossary for ${from} -> ${to}`);
+    }
+    if (!glossary.ready) {
+      throw new Error(`${from} -> ${to} glossary is not ready yet.`);
+    }
+    return glossary as DeepLGlossary;
+  }
+
   async runTranslation(
     strings: { key: string; value: string }[],
     from: string,
@@ -138,10 +270,13 @@ export class DeepL implements TranslationService {
       replaceInterpolations(s.value, this.interpolationMatcher),
     );
 
+    // Find the glossary that matches the source and target language:
+    const glossary = await this.getGlossary(from, to);
     const body = {
       text: cleaned.map((c) => c.clean),
       source_lang: from.toUpperCase(),
       target_lang: to.toUpperCase(),
+      glossary_id: glossary.glossary_id,
       // see https://www.deepl.com/docs-api/html/disabling
       // set in order to indicate to DeepL that the interpolated strings that the matcher
       // replaced with `<span translate="no">${index}</span> should not be translated
