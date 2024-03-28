@@ -270,18 +270,24 @@ export class DeepL implements TranslationService {
       replaceInterpolations(s.value, this.interpolationMatcher),
     );
 
-    // Find the glossary that matches the source and target language:
-    const glossary = await this.getGlossary(from, to);
     const body = {
       text: cleaned.map((c) => c.clean),
       source_lang: from.toUpperCase(),
       target_lang: to.toUpperCase(),
-      glossary_id: glossary.glossary_id,
       // see https://www.deepl.com/docs-api/html/disabling
       // set in order to indicate to DeepL that the interpolated strings that the matcher
       // replaced with `<span translate="no">${index}</span> should not be translated
       tag_handling: 'html',
     };
+
+    // Should a glossary be used?
+    if (this.glossariesDir) {
+      // Find the glossary that matches the source and target language:
+      const glossary = await this.getGlossary(from, to);
+      // Add it to the options body:
+      body['glossary_id'] = glossary.glossary_id;
+    }
+
     if (this.supportsFormality(to)) {
       // only append formality to avoid bad request error from deepl for languages with unsupported formality
       body['formality'] = this.formality;
