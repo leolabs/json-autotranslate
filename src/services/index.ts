@@ -24,6 +24,7 @@ export interface TranslationService {
     decodeEscapes?: boolean,
     glossariesDir?: string,
     appName?: string,
+    context?: string,
   ) => Promise<void>;
   supportsLanguage: (language: string) => boolean;
   translateStrings: (

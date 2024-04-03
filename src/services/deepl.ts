@@ -15,6 +15,7 @@ export class DeepL implements TranslationService {
   private apiEndpoint: string;
   private glossariesDir: string;
   private appName: string;
+  private context: string;
   private apiKey: string;
   /**
    * Number to tokens to translate at once
@@ -46,6 +47,7 @@ export class DeepL implements TranslationService {
     decodeEscapes?: boolean,
     glossariesDir?: string,
     appName?: string,
+    context?: string,
   ) {
     if (!config) {
       throw new Error(`Please provide an API key for ${this.name}.`);
@@ -62,6 +64,7 @@ export class DeepL implements TranslationService {
     this.decodeEscapes = decodeEscapes;
     this.glossariesDir = glossariesDir;
     this.appName = appName;
+    this.context = context;
   }
 
   async fetchLanguages() {
@@ -293,6 +296,11 @@ export class DeepL implements TranslationService {
     if (this.supportsFormality(to)) {
       // only append formality to avoid bad request error from deepl for languages with unsupported formality
       body['formality'] = this.formality;
+    }
+
+    if (this.context) {
+      // context is only added if it has been provided by as a command line argument
+      body['context'] = this.context;
     }
 
     // send request as a POST request, with all the tokens as separate texts in the body
