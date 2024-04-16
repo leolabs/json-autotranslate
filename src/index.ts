@@ -63,6 +63,10 @@ commander
     `specify the name of your app to distinguish DeepL glossaries (if sharing an API key between multiple projects)`,
     'json-autotranslate',
   )
+  .option(
+    '--context <context>',
+    `set the context that is used by DeepL for translations`,
+  )
   .option('--list-services', `outputs a list of available services`)
   .option(
     '-m, --matcher <matcher>',
@@ -107,6 +111,7 @@ const translate = async (
   config?: string,
   glossariesDir?: string,
   appName?: string,
+  context?: string,
 ) => {
   const workingDir = path.resolve(process.cwd(), inputDir);
   const resolvedCacheDir = path.resolve(process.cwd(), cacheDir);
@@ -172,6 +177,7 @@ const translate = async (
     decodeEscapes,
     glossariesDir,
     appName,
+    context,
   );
   console.log(chalk`└── {green.bold Done}`);
   console.log();
@@ -419,6 +425,7 @@ translate(
   commander.config,
   commander.glossaries,
   commander.appName,
+  commander.context,
 ).catch((e: Error) => {
   console.log();
   console.log(chalk.bgRed('An error has occurred:'));
