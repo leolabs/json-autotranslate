@@ -221,6 +221,11 @@ export class DeepL implements TranslationService {
     )) {
       entries += `${sourceEntry}\t${targetEntry}\n`;
     }
+    // Abort if the glossary JSON is empty.
+    if (!entries.length) {
+      console.log('Cannot use glossary because it is empty.');
+      return;
+    }
     // Create the request body:
     const body = {
       name: this.appName,
@@ -255,7 +260,7 @@ export class DeepL implements TranslationService {
         g.target_lang === to.toLowerCase(),
     );
     if (!glossary) {
-      throw new Error(`Could not find matching glossary for ${from} -> ${to}`);
+      return null;
     }
     if (!glossary.ready) {
       throw new Error(`${from} -> ${to} glossary is not ready yet.`);
@@ -289,8 +294,10 @@ export class DeepL implements TranslationService {
     if (this.glossariesDir) {
       // Find the glossary that matches the source and target language:
       const glossary = await this.getGlossary(from, to);
-      // Add it to the options body:
-      body['glossary_id'] = glossary.glossary_id;
+      if (glossary) {
+        // Add it to the options body:
+        body['glossary_id'] = glossary.glossary_id;
+      }
     }
 
     if (this.supportsFormality(to)) {
