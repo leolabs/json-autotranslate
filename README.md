@@ -110,7 +110,7 @@ inconsistencies by passing the `--fix-inconsistencies` flag.
 
 ### Key-Based
 
-If you pass use the `keybased` option (`--type keybased`), this tool will use
+If you pass use the `key-based` option (`--type key-based`), this tool will use
 the source file's values as the basis of translations. Keys can be nested, the
 structure will be transferred over to the translated files as well.
 
@@ -212,7 +212,7 @@ Azure account if you don't have one already and
 You'll get an API key soon after that which you can pass to json-autotranslate
 using the `-c` or `--config` flag.
 
-You can also provide a region by adding it to the config string after the API
+Unless you configure a global translator instance you will need to provide a region by adding it to the config string after the API
 key, separated by a comma: `--config apiKey,region`. As of this version, the
 following regions are available:
 
@@ -224,7 +224,8 @@ following regions are available:
 <sup><a href="https://docs.microsoft.com/en-us/azure/cognitive-services/translator/reference/v3-0-reference#authenticating-with-a-multi-service-resource">Reference</a></sup>
 
 As of now, the first 2M characters of translation per month are free. After that
-you'll have to pay \$10 per 1M characters that you translate.
+you'll have to pay \$10 per 1M characters that you translate. See their
+[pricing](https://azure.microsoft.com/en-us/pricing/details/cognitive-services/translator/)
 
 ### Amazon Translate
 
