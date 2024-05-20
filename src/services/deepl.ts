@@ -139,38 +139,32 @@ export class DeepL implements TranslationService {
   }
 
   /**
-   * Delete existing glossaries of this app and re-create them. (DeepL does not allow editing glossaries).
+   * Delete the existing glossary and re-create it. (DeepL does not allow editing glossaries.)
    */
-  async syncGlossaries() {
-    // Delete all existing glossaries of this app:
-    const existingGlossaries = await this.listGlossaries().then((glossaries) =>
-      glossaries.filter((g) => g.name === this.appName),
-    );
-    if (existingGlossaries.length > 0) {
-      for (const glossary of existingGlossaries) {
-        await this.deleteGlossary(glossary.glossary_id);
-        console.log(`Deleting glossary ${glossary.glossary_id}`);
-      }
+  async recreateGlossary(from: string, to: string) {
+    // Delete the existing glossary if it exists:
+    const allGlossaries = await this.listGlossaries();
+    const glossary = allGlossaries
+      .filter((g) => g.name === this.appName) // Only of this app.
+      .find(
+        (g) =>
+          g.source_lang === from.toLowerCase() &&
+          g.target_lang === to.toLowerCase(), // Only of this translation.
+      );
+    if (glossary) {
+      await this.deleteGlossary(glossary.glossary_id);
     }
-    // Add all glossaries found in glossaries directory:
-    const responses: DeepLGlossary[] = [];
-    const files = fs.readdirSync(this.glossariesDir);
-    for (const file of files) {
-      const filePath = path.join(this.glossariesDir, file);
-      if (fs.statSync(filePath).isFile() && path.extname(file) === '.json') {
-        const response = await this.createGlossaryFromFile(filePath);
-        if (response) {
-          responses.push(response);
-          console.log(`Glossary added for file: ${file}`);
-        } else {
-          console.error(`Failed to add glossary for file: ${file}`);
-        }
-      }
-    }
-    return responses;
+    // Add the glossary:
+    const filePath = path.join(this.glossariesDir, `${from}-${to}.json`);
+    const response = await this.createGlossaryFromFile(filePath);
+    return response;
   }
 
+  /**
+   * Delete a glossary.
+   */
   async deleteGlossary(glossary_id: string) {
+    console.log(`Deleting glossary ${glossary_id}`);
     const response = await fetch(
       `${this.apiEndpoint}/glossaries/${glossary_id}`,
       {
@@ -213,6 +207,7 @@ export class DeepL implements TranslationService {
     // Extract source and target language from the file name
     const fileName = path.basename(filePath, '.json');
     const [sourceLang, targetLang] = fileName.split('-');
+    console.log(`Creating ${sourceLang}-${targetLang} glossary`);
     const fileContent = fs.readFileSync(filePath, 'utf-8');
     // Create TSV file:
     let entries = '';
@@ -253,19 +248,14 @@ export class DeepL implements TranslationService {
   }
 
   async getGlossary(from: string, to: string) {
-    const glossaries = await this.syncGlossaries();
-    const glossary = glossaries.find(
-      (g) =>
-        g.source_lang === from.toLowerCase() &&
-        g.target_lang === to.toLowerCase(),
-    );
+    const glossary = await this.recreateGlossary(from, to);
     if (!glossary) {
       return null;
     }
     if (!glossary.ready) {
       throw new Error(`${from} -> ${to} glossary is not ready yet.`);
     }
-    return glossary as DeepLGlossary;
+    return glossary;
   }
 
   async runTranslation(
