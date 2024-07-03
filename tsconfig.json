@@ -4,10 +4,11 @@
     "declaration": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "lib": ["ESNext", "DOM"],
+    "lib": ["esnext", "DOM"],
     "outDir": "./lib",
     "strict": false,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "target": "ESNext"
   },
   "files": ["src/index.ts"]
 }
