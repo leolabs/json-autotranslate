@@ -3,9 +3,9 @@ import { decode } from 'html-entities';
 import {
   replaceInterpolations,
   reInsertInterpolations,
-  Matcher,
+  type Matcher,
 } from '../matchers';
-import { TranslationService, TString } from '.';
+import type { TranslationService, TString } from '.';
 
 // Contains replacements for language codes
 const codeMap = {

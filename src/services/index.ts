@@ -3,7 +3,7 @@ import { DeepL } from './deepl';
 import { DryRun } from './dry-run';
 import { AzureTranslator } from './azure-translator';
 import { ManualTranslation } from './manual';
-import { Matcher } from '../matchers';
+import type { Matcher } from '../matchers';
 import { AmazonTranslate } from './amazon-translate';
 
 export interface TranslationResult {

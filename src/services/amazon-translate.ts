@@ -1,10 +1,10 @@
 import { Translate } from '@aws-sdk/client-translate';
 import { decode } from 'html-entities';
-import { TranslationService, TString } from '.';
+import type { TranslationService, TString } from '.';
 import {
-  Matcher, reInsertInterpolations, replaceInterpolations
+  type Matcher, reInsertInterpolations, replaceInterpolations
 } from '../matchers';
-import fs from 'fs';
+import fs from 'node:fs';
 export class AmazonTranslate implements TranslationService {
   private translate: Translate;
   private interpolationMatcher: Matcher;

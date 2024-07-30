@@ -1,4 +1,4 @@
-import { TranslationService, TString } from '.';
+import type { TranslationService, TString } from '.';
 import chalk from 'chalk';
 
 export class DryRun implements TranslationService {
@@ -14,7 +14,7 @@ export class DryRun implements TranslationService {
     console.log();
 
     if (strings.length > 0) {
-      console.log(`├─┌── Translatable strings:`);
+      console.log("├─┌── Translatable strings:");
 
       for (const { key, value } of strings) {
         console.log(`│ ├──── ${key !== value ? `(${key}) ` : ''}${value}`);

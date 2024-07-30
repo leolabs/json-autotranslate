@@ -3,21 +3,21 @@
 import chalk from 'chalk';
 import commander from 'commander';
 import { flatten, unflatten } from 'flat';
-import * as fs from 'fs';
-import { omit } from 'lodash';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import omit from 'lodash/omit';
+import * as path from 'node:path';
 import { diff } from 'deep-object-diff';
 import ncp from 'ncp';
 
-import { serviceMap, TranslationService } from './services';
+import { serviceMap, type TranslationService } from './services';
 import {
   loadTranslations,
   getAvailableLanguages,
   fixSourceInconsistencies,
   evaluateFilePath,
-  FileType,
-  DirectoryStructure,
-  TranslatableFile,
+  type FileType,
+  type DirectoryStructure,
+  type TranslatableFile,
 } from './util/file-system';
 import { matcherMap } from './matchers';
 
@@ -41,46 +41,46 @@ commander
   )
   .option(
     '-t, --type <key-based|natural|auto>',
-    `specify the file structure type`,
+    "specify the file structure type",
     /^(key-based|natural|auto)$/,
     'auto',
   )
   .option(
     '-a, --with-arrays',
-    `enables support for arrays in files, but removes support for keys named 0, 1, 2, etc.`,
+    "enables support for arrays in files, but removes support for keys named 0, 1, 2, etc.",
   )
   .option(
     '-s, --service <service>',
-    `selects the service to be used for translation`,
+    "selects the service to be used for translation",
     'google-translate',
   )
   .option(
     '-g, --glossaries <glossariesDir>',
-    `set the glossaries folder to be used by DeepL`,
+    "set the glossaries folder to be used by DeepL",
   )
   .option(
     '-a, --appName <appName>',
-    `specify the name of your app to distinguish DeepL glossaries (if sharing an API key between multiple projects)`,
+    "specify the name of your app to distinguish DeepL glossaries (if sharing an API key between multiple projects)",
     'json-autotranslate',
   )
   .option(
     '--context <context>',
-    `set the context that is used by DeepL for translations`,
+    "set the context that is used by DeepL for translations",
   )
-  .option('--list-services', `outputs a list of available services`)
+  .option('--list-services', "outputs a list of available services")
   .option(
     '-m, --matcher <matcher>',
-    `selects the matcher to be used for interpolations`,
+    "selects the matcher to be used for interpolations",
     'icu',
   )
-  .option('--list-matchers', `outputs a list of available matchers`)
+  .option('--list-matchers', "outputs a list of available matchers")
   .option(
     '-c, --config <value>',
     'supply a config parameter (e.g. path to key file) to the translation service',
   )
   .option(
     '-f, --fix-inconsistencies',
-    `automatically fixes inconsistent key-value pairs by setting the value to the key`,
+    "automatically fixes inconsistent key-value pairs by setting the value to the key",
   )
   .option(
     '-d, --delete-unused-strings',
@@ -97,12 +97,12 @@ commander
   .parse(process.argv);
 
 const translate = async (
-  inputDir: string = '.',
-  cacheDir: string = '.json-autotranslate-cache',
-  sourceLang: string = 'en',
+  inputDir = '.',
+  cacheDir = '.json-autotranslate-cache',
+  sourceLang = 'en',
   deleteUnusedStrings = false,
   fileType: FileType = 'auto',
-  withArrays: boolean = false,
+  withArrays = false,
   dirStructure: DirectoryStructure = 'default',
   fixInconsistencies = false,
   service: keyof typeof serviceMap = 'google-translate',
@@ -120,7 +120,7 @@ const translate = async (
 
   if (!fs.existsSync(resolvedCacheDir)) {
     fs.mkdirSync(resolvedCacheDir);
-    console.log(`🗂 Created the cache directory.`);
+    console.log("🗂 Created the cache directory.");
   }
 
   if (!availableLanguages.includes(sourceLang)) {
@@ -163,7 +163,7 @@ const translate = async (
   console.log(`-> ${targetLanguages.join(', ')}`);
   console.log();
 
-  console.log(`🏭 Loading source files...`);
+  console.log("🏭 Loading source files...");
   for (const file of templateFiles) {
     console.log(chalk`├── ${String(file.name)} (${file.type})`);
   }
@@ -188,7 +188,7 @@ const translate = async (
     );
   }
 
-  console.log(`🔍 Looking for key-value inconsistencies in source files...`);
+  console.log("🔍 Looking for key-value inconsistencies in source files...");
   const inconsistentFiles: string[] = [];
 
   for (const file of templateFiles.filter((f) => f.type === 'natural')) {
@@ -216,7 +216,7 @@ const translate = async (
     console.log();
 
     if (fixInconsistencies) {
-      console.log(`💚 Fixing inconsistencies...`);
+      console.log("💚 Fixing inconsistencies...");
       fixSourceInconsistencies(
         templateFilePath,
         evaluateFilePath(resolvedCacheDir, dirStructure, sourceLang),
@@ -232,7 +232,7 @@ const translate = async (
   }
   console.log();
 
-  console.log(`🔍 Looking for invalid keys in source files...`);
+  console.log("🔍 Looking for invalid keys in source files...");
   const invalidFiles: string[] = [];
 
   for (const file of templateFiles.filter((f) => f.type === 'key-based')) {
@@ -300,7 +300,7 @@ const translate = async (
     );
 
     switch (dirStructure) {
-      case 'default':
+      case 'default': {
         const existingFiles = loadTranslations(
           evaluateFilePath(workingDir, dirStructure, language),
           fileType,
@@ -348,8 +348,9 @@ const translate = async (
           totalRemovedTranslations += removedTranslations;
         }
         break;
+      }
 
-      case 'ngx-translate':
+      case 'ngx-translate': {
         const sourceFile = templateFiles.find(
           (f) => f.name === `${sourceLang}.json`,
         );
@@ -364,6 +365,7 @@ const translate = async (
         totalAddedTranslations += addedTranslations;
         totalRemovedTranslations += removedTranslations;
         break;
+      }
     }
 
     console.log(chalk`└── {green.bold All strings have been translated.}`);
@@ -489,6 +491,7 @@ function createTranslator(
     );
 
     const newKeys = translatedStrings.reduce(
+      // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
       (acc, cur) => ({ ...acc, [cur.key]: cur.translated }),
       {} as { [k: string]: string },
     );
@@ -504,13 +507,13 @@ function createTranslator(
       };
 
       const newContent =
-        JSON.stringify(
+        `${JSON.stringify(
           sourceFile.type === 'key-based'
             ? unflatten(translatedFile, { object: !withArrays })
             : translatedFile,
           null,
           2,
-        ) + `\n`;
+        )}\n`;
 
       fs.writeFileSync(
         path.resolve(
@@ -533,7 +536,7 @@ function createTranslator(
           languageCachePath,
           destinationFile?.name ?? sourceFile.name,
         ),
-        JSON.stringify(translatedFile, null, 2) + '\n',
+        `${JSON.stringify(translatedFile, null, 2)}\n`,
       );
     }
 

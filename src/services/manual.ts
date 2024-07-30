@@ -2,9 +2,9 @@ import inquirer from 'inquirer';
 import {
   replaceInterpolations,
   reInsertInterpolations,
-  Matcher,
+  type Matcher,
 } from '../matchers';
-import { TranslationService } from '.';
+import type { TranslationService } from '.';
 
 export class ManualTranslation implements TranslationService {
   private interpolationMatcher: Matcher;
@@ -30,7 +30,7 @@ export class ManualTranslation implements TranslationService {
     }
 
     console.log();
-    console.log(`├─┌── Translatable strings:`);
+    console.log("├─┌── Translatable strings:");
 
     for (const { key, value } of strings) {
       const { replacements } = replaceInterpolations(
@@ -55,7 +55,7 @@ export class ManualTranslation implements TranslationService {
       });
     }
 
-    process.stdout.write(`│ └── Done`);
+    process.stdout.write("│ └── Done");
 
     return results;
   }

@@ -31,24 +31,26 @@
   ],
   "bin": "lib/index.js",
   "dependencies": {
-    "@aws-sdk/client-translate": "^3.52.0",
+    "@aws-sdk/client-translate": "^3.600.0",
     "@google-cloud/translate": "^8.3.0",
-    "chalk": "^4.1.0",
-    "commander": "^6.1.0",
+    "chalk": "^5.3.0",
+    "commander": "^6.0.0",
     "deep-object-diff": "^1.1.0",
     "dotenv": "^8.2.0",
-    "flat": "^5.0.2",
+    "flat": "^6.0.0",
     "html-entities": "^2.3.2",
-    "inquirer": "^7.3.3",
-    "lodash": "^4.17.20",
+    "inquirer": "^10.0.0",
+    "lodash.chunk": "^4.2.0",
+    "lodash.flatten": "^4.4.0",
+    "lodash.omit": "^4.5.0",
     "messageformat-parser": "^4.1.3",
     "ncp": "^2.0.0",
     "node-fetch": "^2.6.1"
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
-    "@types/flat": "^5.0.2",
-    "@types/inquirer": "^7.3.1",
+    "@types/flat": "^5.0.0",
+    "@types/inquirer": "^9.0.0",
     "@types/jest": "^26.0.14",
     "@types/lodash": "^4.14.161",
     "@types/ncp": "^2.0.4",
@@ -58,6 +60,6 @@
     "ts-jest": "^29.1.5",
     "ts-node": "^9.0.0",
     "tslint": "^6.1.3",
-    "typescript": "^4.0.3"
+    "typescript": "^5.3.3"
   }
 }

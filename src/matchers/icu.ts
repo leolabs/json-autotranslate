@@ -1,5 +1,5 @@
 import { parse } from 'messageformat-parser';
-import { Matcher } from '.';
+import type { Matcher } from '.';
 
 type Plural = {
   cases: [
