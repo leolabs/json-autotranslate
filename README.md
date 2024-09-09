@@ -212,9 +212,10 @@ Azure account if you don't have one already and
 You'll get an API key soon after that which you can pass to json-autotranslate
 using the `-c` or `--config` flag.
 
-Unless you configure a global translator instance you will need to provide a region by adding it to the config string after the API
-key, separated by a comma: `--config apiKey,region`. As of this version, the
-following regions are available:
+Unless you configure a global translator instance you will need to provide a
+region by adding it to the config string after the API key, separated by a
+comma: `--config apiKey,region`. As of this version, the following regions are
+available:
 
 > australiaeast, brazilsouth, canadacentral, centralindia, centralus,
 > centraluseuap, eastasia, eastus, eastus2, francecentral, japaneast, japanwest,
@@ -298,20 +299,24 @@ available matchers.
 
 ```
 Options:
-  -i, --input <inputDir>                        the directory containing language directories (default: ".")
-  -l, --source-language <sourceLang>            specify the source language (default: "en")
-  -t, --type <key-based|natural|auto>           specify the file structure type (default: "auto")
-  -s, --service <service>                       selects the service to be used for translation (default: "google-translate")
-  --list-services                               outputs a list of available services
-  -m, --matcher <matcher>                       selects the matcher to be used for interpolations (default: "icu")
-  -a, --with-arrays                             enables support for arrays in files, but removes support for keys named 0, 1, 2, etc.
-  --list-matchers                               outputs a list of available matchers
-  -c, --config <value>                          supply a config parameter (e.g. path to key file) to the translation service
-  -f, --fix-inconsistencies                     automatically fixes inconsistent key-value pairs by setting the value to the key
-  -d, --delete-unused-strings                   deletes strings in translation files that don't exist in the template
-  -h, --help                                    output usage information
-  --directory-structure <default|ngx-translate> the locale directory structure (default: "default")
-  --decode-escapes                              decodes escaped HTML entities like &#39; into normal UTF-8 characters
+  -i, --input <inputDir>                         the directory containing language directories (default: ".")
+  --cache <cacheDir>                             set the cache directory (default: ".json-autotranslate-cache")
+  -l, --source-language <sourceLang>             specify the source language (default: "en")
+  -t, --type <key-based|natural|auto>            specify the file structure type (default: "auto")
+  -a, --with-arrays                              enables support for arrays in files, but removes support for keys named 0, 1, 2, etc.
+  -s, --service <service>                        selects the service to be used for translation (default: "google-translate")
+  -g, --glossaries [glossariesDir]               set the glossaries folder to be used by DeepL. Keep empty for automatic determination of matching glossary
+  -a, --appName <appName>                        specify the name of your app to distinguish DeepL glossaries (if sharing an API key between multiple projects) (default: "json-autotranslate")
+  --context <context>                            set the context that is used by DeepL for translations
+  --list-services                                outputs a list of available services
+  -m, --matcher <matcher>                        selects the matcher to be used for interpolations (default: "icu")
+  --list-matchers                                outputs a list of available matchers
+  -c, --config <value>                           supply a config parameter (e.g. path to key file) to the translation service
+  -f, --fix-inconsistencies                      automatically fixes inconsistent key-value pairs by setting the value to the key
+  -d, --delete-unused-strings                    deletes strings in translation files that don't exist in the template
+  --directory-structure <default|ngx-translate>  the locale directory structure
+  --decode-escapes                               decodes escaped HTML entities like &#39; into normal UTF-8 characters
+  -h, --help                                     display help for command
 ```
 
 ## Contributing

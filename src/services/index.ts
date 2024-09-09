@@ -22,7 +22,7 @@ export interface TranslationService {
     config?: string,
     interpolationMatcher?: Matcher,
     decodeEscapes?: boolean,
-    glossariesDir?: string,
+    glossariesDir?: string | boolean,
     appName?: string,
     context?: string,
   ) => Promise<void>;
