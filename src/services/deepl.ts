@@ -228,7 +228,7 @@ export class DeepL implements TranslationService {
     return glossary as DeepLGlossary;
   }
 
-  async getGlossary(from: string, to: string, recreate = false) {
+  async getGlossary(from: string, to: string, recreate: boolean) {
     const allGlossaries = await this.listGlossaries();
     let glossary = allGlossaries
       .filter((g) => (!!this.appName ? g.name === this.appName : true)) // Only of this app, if defined
@@ -276,7 +276,11 @@ export class DeepL implements TranslationService {
     // Should a glossary be used?
     if (this.glossariesDir || this.automaticGlossary) {
       // Find the glossary that matches the source and target language:
-      const glossary = await this.getGlossary(from, to);
+      const glossary = await this.getGlossary(
+        from,
+        to,
+        !this.automaticGlossary,
+      );
       if (glossary) {
         // Add it to the options body:
         body['glossary_id'] = glossary.glossary_id;
