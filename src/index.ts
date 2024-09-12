@@ -55,8 +55,8 @@ commander
     'google-translate',
   )
   .option(
-    '-g, --glossaries <glossariesDir>',
-    `set the glossaries folder to be used by DeepL`,
+    '-g, --glossaries [glossariesDir]',
+    `set the glossaries folder to be used by DeepL. Keep empty for automatic determination of matching glossary`,
   )
   .option(
     '-a, --appName <appName>',
@@ -109,7 +109,7 @@ const translate = async (
   matcher: keyof typeof matcherMap = 'icu',
   decodeEscapes = false,
   config?: string,
-  glossariesDir?: string,
+  glossariesDir?: string | boolean,
   appName?: string,
   context?: string,
 ) => {
