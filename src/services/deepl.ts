@@ -274,7 +274,8 @@ export class DeepL implements TranslationService {
     };
 
     // Should a glossary be used?
-    if (this.glossariesDir || this.automaticGlossary) {
+    const glossaryFilePath = path.join(this.glossariesDir, `${from}-${to}.json`);
+    if (fs.existsSync(glossaryFilePath) || this.automaticGlossary) {
       // Find the glossary that matches the source and target language:
       const glossary = await this.getGlossary(
         from,
