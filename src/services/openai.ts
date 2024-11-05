@@ -95,9 +95,6 @@ You are an expert linguistic translator specializing in {sourceLang} to {targetL
       // Make the API call to OpenAI
       const translatedText = await this.callOpenAIChatCompletion(messages);
 
-      console.log(`Context: ${contextForKey}`);
-      console.log(`OpenAI output: ${translatedText}`);
-
       // Re-insert interpolations
       const finalTranslation = await reInsertInterpolations(
         translatedText,
