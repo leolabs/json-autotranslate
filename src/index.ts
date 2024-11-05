@@ -65,7 +65,7 @@ commander
   )
   .option(
     '--context <context>',
-    `set the context that is used by DeepL for translations`,
+    `set the context that is used by DeepL for translations, for OpenAI it's the path to a JSON file`,
   )
   .option('--list-services', `outputs a list of available services`)
   .option(
