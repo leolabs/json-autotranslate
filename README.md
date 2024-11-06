@@ -138,6 +138,7 @@ As of this release, json-autotranslate offers five services:
   to translate strings)
 - **amazon-translate** (uses
   [Amazon Translate](https://aws.amazon.com/translate/) to translate strings)
+- **OpenAI** (uses gpt-4o and can take a context file path from the context option)
 - **manual** (allows you to translate strings manually by entering them into the
   CLI)
 - **dry-run** (outputs a list of strings that will be translated without
@@ -307,7 +308,7 @@ Options:
   -s, --service <service>                        selects the service to be used for translation (default: "google-translate")
   -g, --glossaries [glossariesDir]               set the glossaries folder to be used by DeepL. Keep empty for automatic determination of matching glossary
   -a, --appName <appName>                        specify the name of your app to distinguish DeepL glossaries (if sharing an API key between multiple projects) (default: "json-autotranslate")
-  --context <context>                            set the context that is used by DeepL for translations
+  --context <context>                            set the context that is used by DeepL for translations, for OpenAI it is the path to the json file containing the context for each key
   --list-services                                outputs a list of available services
   -m, --matcher <matcher>                        selects the matcher to be used for interpolations (default: "icu")
   --list-matchers                                outputs a list of available matchers
@@ -316,6 +317,7 @@ Options:
   -d, --delete-unused-strings                    deletes strings in translation files that don't exist in the template
   --directory-structure <default|ngx-translate>  the locale directory structure
   --decode-escapes                               decodes escaped HTML entities like &#39; into normal UTF-8 characters
+  -o, --overwrite                                overwrite already present translations
   -h, --help                                     display help for command
 ```
 

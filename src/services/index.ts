@@ -5,6 +5,7 @@ import { AzureTranslator } from './azure-translator';
 import { ManualTranslation } from './manual';
 import { Matcher } from '../matchers';
 import { AmazonTranslate } from './amazon-translate';
+import { OpenAITranslator } from './openai';
 
 export interface TranslationResult {
   key: string;
@@ -44,6 +45,7 @@ export const serviceMap: {
   azure: new AzureTranslator(),
   manual: new ManualTranslation(),
   'amazon-translate': new AmazonTranslate(),
+  'openai': new OpenAITranslator(),
 };
 
 export interface DeepLGlossary {
