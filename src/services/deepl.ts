@@ -13,7 +13,7 @@ import {
 export class DeepL implements TranslationService {
   public name: string;
   private apiEndpoint: string;
-  private glossariesDir: string;
+  private glossariesDir: string | undefined;
   private automaticGlossary: boolean;
   private appName: string;
   private context: string;
@@ -238,7 +238,7 @@ export class DeepL implements TranslationService {
           g.target_lang === to.toLowerCase(), // Only of this translation.
       );
 
-    if (recreate) {
+    if (recreate && this.glossariesDir) {
       if (glossary) {
         await this.deleteGlossary(glossary.glossary_id);
       }
@@ -274,7 +274,9 @@ export class DeepL implements TranslationService {
     };
 
     // Should a glossary be used?
-    const hasGlossaryFile = this.glossariesDir && fs.existsSync(path.join(this.glossariesDir, `${from}-${to}.json`));
+    const hasGlossaryFile =
+      this.glossariesDir &&
+      fs.existsSync(path.join(this.glossariesDir, `${from}-${to}.json`));
     if (hasGlossaryFile || this.automaticGlossary) {
       // Find the glossary that matches the source and target language:
       const glossary = await this.getGlossary(
