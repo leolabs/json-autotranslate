@@ -7,7 +7,7 @@ import {
 import { TranslationService } from '.';
 
 export class ManualTranslation implements TranslationService {
-  private interpolationMatcher: Matcher;
+  private interpolationMatcher?: Matcher;
   public name = 'Manual Translation';
 
   async initialize(config?, interpolationMatcher?: Matcher) {

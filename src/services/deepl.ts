@@ -13,20 +13,20 @@ import {
 export class DeepL implements TranslationService {
   public name: string;
   private apiEndpoint: string;
-  private glossariesDir: string | undefined;
-  private automaticGlossary: boolean;
-  private appName: string;
-  private context: string;
-  private apiKey: string;
+  private glossariesDir?: string;
+  private automaticGlossary?: boolean;
+  private appName?: string;
+  private context?: string;
+  private apiKey?: string;
   /**
    * Number to tokens to translate at once
    */
-  private batchSize: number = 1000;
-  private supportedLanguages: Set<string>;
-  private formalityLanguages: Set<string>;
-  private interpolationMatcher: Matcher;
-  private decodeEscapes: boolean;
-  private formality: 'default' | 'less' | 'more';
+  private batchSize = 1000;
+  private supportedLanguages?: Set<string>;
+  private formalityLanguages?: Set<string>;
+  private interpolationMatcher?: Matcher;
+  private decodeEscapes?: boolean;
+  private formality?: 'default' | 'less' | 'more';
 
   /**
    * Creates a new instance of the DeepL translation service
@@ -71,6 +71,10 @@ export class DeepL implements TranslationService {
   }
 
   async fetchLanguages() {
+    if (!this.apiKey) {
+      throw new Error('Missing API key');
+    }
+
     const url = new URL(`${this.apiEndpoint}/languages`);
     url.searchParams.append('auth_key', this.apiKey);
     url.searchParams.append('type', 'target');
@@ -86,6 +90,7 @@ export class DeepL implements TranslationService {
       name: string;
       supports_formality: boolean;
     }> = await response.json();
+
     return languages;
   }
 
@@ -117,11 +122,11 @@ export class DeepL implements TranslationService {
   }
 
   supportsLanguage(language: string) {
-    return this.supportedLanguages.has(language.toLowerCase());
+    return !!this.supportedLanguages?.has(language.toLowerCase());
   }
 
   supportsFormality(language: string) {
-    return this.formalityLanguages.has(language.toLowerCase());
+    return !!this.formalityLanguages?.has(language.toLowerCase());
   }
 
   async translateStrings(
