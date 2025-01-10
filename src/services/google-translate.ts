@@ -14,10 +14,10 @@ const codeMap = {
 };
 
 export class GoogleTranslate implements TranslationService {
-  private translate: v2.Translate;
-  private interpolationMatcher: Matcher;
+  private translate?: v2.Translate;
+  private interpolationMatcher?: Matcher;
   private supportedLanguages: string[] = [];
-  private decodeEscapes: boolean;
+  private decodeEscapes?: boolean;
 
   public name = 'Google Translate';
 
@@ -45,8 +45,11 @@ export class GoogleTranslate implements TranslationService {
   }
 
   async getAvailableLanguages() {
+    if (!this.translate) {
+      throw new Error("Google Translate hasn't been initialized yet.");
+    }
+
     const [languages] = await this.translate.getLanguages();
-    console.log(languages);
     return languages.map((l) => l.code.toLowerCase());
   }
 
@@ -67,6 +70,10 @@ export class GoogleTranslate implements TranslationService {
   async translateStrings(strings: TString[], from: string, to: string) {
     return Promise.all(
       strings.map(async ({ key, value }) => {
+        if (!this.translate) {
+          throw new Error("Google Translate hasn't been initialized yet.");
+        }
+
         const { clean, replacements } = replaceInterpolations(
           value,
           this.interpolationMatcher,

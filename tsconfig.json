@@ -6,8 +6,9 @@
     "resolveJsonModule": true,
     "lib": ["esnext", "DOM"],
     "outDir": "./lib",
-    "strict": false,
+    "strict": true,
     "noImplicitAny": false,
+    "skipLibCheck": true,
     "target": "ESNext"
   },
   "files": ["src/index.ts"]

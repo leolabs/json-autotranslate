@@ -35,18 +35,18 @@ const TRANSLATE_ENDPOINT =
 
 export class AzureTranslator implements TranslationService {
   public name = 'Azure';
-  private apiKey: string;
+  private apiKey?: string;
   private region?: string;
-  private interpolationMatcher: Matcher;
-  private supportedLanguages: Set<string>;
-  private decodeEscapes: boolean;
+  private interpolationMatcher?: Matcher;
+  private supportedLanguages?: Set<string>;
+  private decodeEscapes?: boolean;
 
   async initialize(
     config?: string,
     interpolationMatcher?: Matcher,
     decodeEscapes?: boolean,
   ) {
-    const [apiKey, region] = config.split(',');
+    const [apiKey, region] = config?.split(',') ?? [];
     if (!apiKey) throw new Error(`Please provide an API key for Azure.`);
 
     this.apiKey = apiKey;
@@ -70,7 +70,7 @@ export class AzureTranslator implements TranslationService {
   }
 
   supportsLanguage(language: string) {
-    return this.supportedLanguages.has(language.toLowerCase());
+    return !!this.supportedLanguages?.has(language.toLowerCase());
   }
 
   async translateBatch(batch: TString[], from: string, to: string) {
@@ -82,6 +82,10 @@ export class AzureTranslator implements TranslationService {
 
       return { key, value, clean, replacements };
     });
+
+    if (!this.apiKey) {
+      throw new Error('Missing API Key');
+    }
 
     const headers = {
       'Ocp-Apim-Subscription-Key': this.apiKey,
