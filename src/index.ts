@@ -65,7 +65,7 @@ commander
   )
   .option(
     '--context <context>',
-    `set the context that is used by DeepL for translations`,
+    `set the context that is used by DeepL for translations, for OpenAI it's the path to a JSON file`,
   )
   .option('--list-services', `outputs a list of available services`)
   .option(
@@ -94,6 +94,10 @@ commander
     '--decode-escapes',
     'decodes escaped HTML entities like &#39; into normal UTF-8 characters',
   )
+  .option(
+    '-o, --overwrite',
+    'overwrite existing translations instead of skipping them',
+  )
   .parse(process.argv);
 
 const translate = async (
@@ -112,6 +116,7 @@ const translate = async (
   glossariesDir?: string | boolean,
   appName?: string,
   context?: string,
+  overwrite: boolean = false,
 ) => {
   const workingDir = path.resolve(process.cwd(), inputDir);
   const resolvedCacheDir = path.resolve(process.cwd(), cacheDir);
@@ -297,6 +302,7 @@ const translate = async (
       dirStructure,
       deleteUnusedStrings,
       withArrays,
+      overwrite,
     );
 
     switch (dirStructure) {
@@ -426,6 +432,7 @@ translate(
   commander.glossaries,
   commander.appName,
   commander.context,
+  commander.overwrite,
 ).catch((e: Error) => {
   console.log();
   console.log(chalk.bgRed('An error has occurred:'));
@@ -445,6 +452,7 @@ function createTranslator(
   dirStructure: DirectoryStructure,
   deleteUnusedStrings: boolean,
   withArrays: boolean,
+  overwrite, 
 ) {
   return async (
     sourceFile: TranslatableFile,
@@ -472,7 +480,7 @@ function createTranslator(
       : [];
     const templateStrings = Object.keys(sourceFile.content);
     const stringsToTranslate = templateStrings
-      .filter((key) => !existingKeys.includes(key) || cacheDiff.includes(key))
+      .filter((key) => overwrite || !existingKeys.includes(key) || cacheDiff.includes(key))
       .map((key) => ({
         key,
         value: sourceFile.type === 'key-based' ? sourceFile.content[key] : key,
