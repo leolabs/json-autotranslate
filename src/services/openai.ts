@@ -1,6 +1,9 @@
-
 import { TranslationService, TranslationResult } from '.';
-import { Matcher, replaceInterpolations, reInsertInterpolations } from '../matchers';
+import {
+  Matcher,
+  replaceInterpolations,
+  reInsertInterpolations,
+} from '../matchers';
 import fetch from 'node-fetch';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -9,9 +12,9 @@ import _ from 'lodash';
 
 export class OpenAITranslator implements TranslationService {
   public name = 'OpenAI';
-  private apiKey: string;
-  private systemPrompt: string;
-  private context: { [key: string]: string };
+  private apiKey?: string;
+  private systemPrompt?: string;
+  private context?: { [key: string]: string };
   private interpolationMatcher?: Matcher;
   private decodeEscapes?: boolean;
 
@@ -29,7 +32,9 @@ export class OpenAITranslator implements TranslationService {
 
     const [apiKey, systemPrompt] = config.split(',');
     this.apiKey = apiKey;
-    this.systemPrompt = systemPrompt || `
+    this.systemPrompt =
+      systemPrompt ||
+      `
 You are an expert linguistic translator specializing in {sourceLang} to {targetLang} (ISO 639-1) translations. Your task is to provide accurate, contextually appropriate, and natural-sounding translations while adhering to the following guidelines:
 - Preserve the original meaning: Ensure that the core message and nuances of the source text are accurately conveyed in the target language.
 - Maintain context: If provided, use the given context to inform your translation choices and ensure cultural appropriateness.
@@ -266,6 +271,10 @@ ISO to Language:
       // Get context for the key
       const contextForKey = _.get(this.context, key) || '';
 
+      if (!this.systemPrompt) {
+        throw new Error('Missing system prompt');
+      }
+
       // Prepare the messages for OpenAI API
       const systemPromptFilled = this.systemPrompt
         .replace('{sourceLang}', from)
@@ -292,14 +301,18 @@ ISO to Language:
       results.push({
         key,
         value,
-        translated: this.decodeEscapes ? decode(finalTranslation) : finalTranslation,
+        translated: this.decodeEscapes
+          ? decode(finalTranslation)
+          : finalTranslation,
       });
     }
 
     return results;
   }
 
-  private async callOpenAIChatCompletion(messages: { role: string; content: string }[]): Promise<string> {
+  private async callOpenAIChatCompletion(
+    messages: { role: string; content: string }[],
+  ): Promise<string> {
     const apiKey = this.apiKey;
     const apiUrl = 'https://api.openai.com/v1/chat/completions';
 
@@ -312,7 +325,7 @@ ISO to Language:
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
@@ -320,7 +333,9 @@ ISO to Language:
 
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new Error(`OpenAI API request failed: ${response.status} ${response.statusText} - ${errorBody}`);
+      throw new Error(
+        `OpenAI API request failed: ${response.status} ${response.statusText} - ${errorBody}`,
+      );
     }
 
     const responseData = await response.json();
