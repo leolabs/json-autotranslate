@@ -481,7 +481,7 @@ function createTranslator(
     const templateStrings = Object.keys(sourceFile.content);
     const stringsToTranslate = templateStrings
       .filter((key) => overwrite || !existingKeys.includes(key) || cacheDiff.includes(key) ||
-        (typeof sourceFile.content[key] == 'string' && destinationFile?.content[key]?.trim() == ""))
+        (typeof sourceFile.content[key] == 'string' && !destinationFile?.content[key]))
       .map((key) => ({
         key,
         value: sourceFile.type === 'key-based' ? sourceFile.content[key] : key,
