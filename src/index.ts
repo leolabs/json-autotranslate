@@ -30,6 +30,10 @@ commander
     '.',
   )
   .option(
+    '--exclude <exclude glob>',
+    'exclude files matching the given glob pattern',
+  )
+  .option(
     '--cache <cacheDir>',
     'set the cache directory',
     '.json-autotranslate-cache',
@@ -102,6 +106,7 @@ commander
 
 const translate = async (
   inputDir: string = '.',
+  exclude: string | undefined = undefined,
   cacheDir: string = '.json-autotranslate-cache',
   sourceLang: string = 'en',
   deleteUnusedStrings = false,
@@ -150,6 +155,7 @@ const translate = async (
 
   const templateFiles = loadTranslations(
     templateFilePath,
+    exclude,
     fileType,
     withArrays,
   );
@@ -418,6 +424,7 @@ if (commander.listMatchers) {
 
 translate(
   commander.input,
+  commander.exclude,
   commander.cache,
   commander.sourceLanguage,
   commander.deleteUnusedStrings,
