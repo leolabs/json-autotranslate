@@ -54,7 +54,7 @@ export const loadTranslations = (
       const type = fileType === 'auto' ? detectFileType(json) : fileType;
 
       return {
-        name: f,
+        name: path.basename(f),
         originalContent: json,
         type,
         content:
