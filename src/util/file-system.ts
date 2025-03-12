@@ -44,7 +44,7 @@ export const detectFileType = (json: any): FileType => {
 
 export const loadTranslations = (
   directory: string,
-  exclude: string | undefined,
+  exclude?: string,
   fileType: FileType = 'auto',
   withArrays = false,
 ) =>
