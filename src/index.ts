@@ -315,6 +315,7 @@ const translate = async (
       case 'default':
         const existingFiles = loadTranslations(
           evaluateFilePath(workingDir, dirStructure, language),
+          exclude,
           fileType,
           withArrays,
         );
