@@ -44,27 +44,26 @@ export const detectFileType = (json: any): FileType => {
 
 export const loadTranslations = (
   directory: string,
-  exclude: string | undefined,
+  exclude?: string,
   fileType: FileType = 'auto',
   withArrays = false,
 ) =>
-    globSync(`${directory}/*.json`, { ignore: exclude })
-    .map((f) => {
-      const json = require(path.resolve(directory, f));
-      const type = fileType === 'auto' ? detectFileType(json) : fileType;
+  globSync(`${directory}/*.json`, { ignore: exclude }).map((f) => {
+    const json = require(path.resolve(directory, f));
+    const type = fileType === 'auto' ? detectFileType(json) : fileType;
 
-      return {
-        name: path.basename(f),
-        originalContent: json,
-        type,
-        content:
-          type === 'key-based'
-            ? flatten(require(path.resolve(directory, f)), {
-                safe: !withArrays,
-              })
-            : require(path.resolve(directory, f)),
-      } as TranslatableFile;
-    });
+    return {
+      name: path.basename(f),
+      originalContent: json,
+      type,
+      content:
+        type === 'key-based'
+          ? flatten(require(path.resolve(directory, f)), {
+              safe: !withArrays,
+            })
+          : require(path.resolve(directory, f)),
+    } as TranslatableFile;
+  });
 
 export const fixSourceInconsistencies = (
   directory: string,
