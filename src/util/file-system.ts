@@ -8,7 +8,7 @@ export type FileType = 'key-based' | 'natural' | 'auto';
 export type DirectoryStructure = 'default' | 'ngx-translate';
 
 export interface TranslatableFile {
-  name: string;
+  relativePath: string;
   originalContent: string;
   type: FileType;
   content: object;
@@ -44,16 +44,17 @@ export const detectFileType = (json: any): FileType => {
 
 export const loadTranslations = (
   directory: string,
-  exclude?: string,
+  exclude: string | undefined,
   fileType: FileType = 'auto',
   withArrays = false,
+  recursive = false
 ) =>
-  globSync(`${directory}/*.json`, { ignore: exclude }).map((f) => {
+  globSync(`${directory}${recursive ? '/**' : ''}/*.json`, { ignore: exclude }).map((f) => {
     const json = require(path.resolve(directory, f));
     const type = fileType === 'auto' ? detectFileType(json) : fileType;
 
     return {
-      name: path.basename(f),
+      relativePath: recursive ? path.relative(directory, f) : path.basename(f),
       originalContent: json,
       type,
       content:
@@ -65,11 +66,28 @@ export const loadTranslations = (
     } as TranslatableFile;
   });
 
+export const ensureDirectoryExists = (filePath: string) => {
+  const dirname = path.dirname(filePath);
+  if (!fs.existsSync(dirname)) {
+    fs.mkdirSync(dirname, { recursive:true });
+  }
+}
+
 export const fixSourceInconsistencies = (
   directory: string,
   cacheDir: string,
+  exclude: string | undefined,
+  fileType: FileType = 'auto',
+  withArrays = false,
+  recursive = false
 ) => {
-  const files = loadTranslations(directory).filter((f) => f.type === 'natural');
+  const files = loadTranslations(
+    directory,
+    exclude,
+    fileType,
+    withArrays,
+    recursive
+  ).filter((f) => f.type === 'natural');
 
   for (const file of files) {
     const fixedContent = Object.keys(file.content).reduce(
@@ -77,13 +95,18 @@ export const fixSourceInconsistencies = (
       {} as { [k: string]: string },
     );
 
+    const outPath = path.resolve(directory, file.relativePath);
+    const cachePath = path.resolve(cacheDir, file.relativePath);
+    ensureDirectoryExists(outPath)
+    ensureDirectoryExists(cachePath)
+
     fs.writeFileSync(
-      path.resolve(directory, file.name),
-      JSON.stringify(fixedContent, null, 2) + '\n',
+      outPath,
+      JSON.stringify(fixedContent, null, 2) + '\n'
     );
 
     fs.writeFileSync(
-      path.resolve(cacheDir, file.name),
+      cachePath,
       JSON.stringify(fixedContent, null, 2) + '\n',
     );
   }

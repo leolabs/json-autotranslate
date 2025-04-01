@@ -17,7 +17,7 @@ import {
   evaluateFilePath,
   FileType,
   DirectoryStructure,
-  TranslatableFile,
+  TranslatableFile, ensureDirectoryExists,
 } from './util/file-system';
 import { matcherMap } from './matchers';
 
@@ -102,6 +102,10 @@ commander
     '-o, --overwrite',
     'overwrite existing translations instead of skipping them',
   )
+  .option(
+    '-r, --recursive',
+    'recursively load translations from subdirectories',
+  )
   .parse(process.argv);
 
 const translate = async (
@@ -122,6 +126,7 @@ const translate = async (
   appName?: string,
   context?: string,
   overwrite: boolean = false,
+  recursive: boolean = false,
 ) => {
   const workingDir = path.resolve(process.cwd(), inputDir);
   const resolvedCacheDir = path.resolve(process.cwd(), cacheDir);
@@ -158,6 +163,7 @@ const translate = async (
     exclude,
     fileType,
     withArrays,
+    recursive
   );
 
   if (templateFiles.length === 0) {
@@ -176,7 +182,7 @@ const translate = async (
 
   console.log(`🏭 Loading source files...`);
   for (const file of templateFiles) {
-    console.log(chalk`├── ${String(file.name)} (${file.type})`);
+    console.log(chalk`├── ${String(file.relativePath)} (${file.type})`);
   }
   console.log(chalk`└── {green.bold Done}`);
   console.log();
@@ -208,9 +214,9 @@ const translate = async (
     );
 
     if (inconsistentKeys.length > 0) {
-      inconsistentFiles.push(file.name);
+      inconsistentFiles.push(file.relativePath);
       console.log(
-        chalk`├── {yellow.bold ${file.name} contains} {red.bold ${String(
+        chalk`├── {yellow.bold ${file.relativePath} contains} {red.bold ${String(
           inconsistentKeys.length,
         )}} {yellow.bold inconsistent key(s)}`,
       );
@@ -231,6 +237,10 @@ const translate = async (
       fixSourceInconsistencies(
         templateFilePath,
         evaluateFilePath(resolvedCacheDir, dirStructure, sourceLang),
+        exclude,
+        fileType,
+        withArrays,
+        recursive,
       );
       console.log(chalk`└── {green.bold Fixed all inconsistencies.}`);
     } else {
@@ -252,9 +262,9 @@ const translate = async (
     );
 
     if (invalidKeys.length > 0) {
-      invalidFiles.push(file.name);
+      invalidFiles.push(file.relativePath);
       console.log(
-        chalk`├── {yellow.bold ${file.name} contains} {red.bold ${String(
+        chalk`├── {yellow.bold ${file.relativePath} contains} {red.bold ${String(
           invalidKeys.length,
         )}} {yellow.bold invalid key(s)}`,
       );
@@ -318,29 +328,30 @@ const translate = async (
           exclude,
           fileType,
           withArrays,
+          recursive
         );
 
         if (deleteUnusedStrings) {
-          const templateFileNames = templateFiles.map((t) => t.name);
+          const templateFileNames = templateFiles.map((t) => t.relativePath);
           const deletableFiles = existingFiles.filter(
-            (f) => !templateFileNames.includes(f.name),
+            (f) => !templateFileNames.includes(f.relativePath),
           );
 
           for (const file of deletableFiles) {
             console.log(
-              chalk`├── {red.bold ${file.name} is no longer used and will be deleted.}`,
+              chalk`├── {red.bold ${file.relativePath} is no longer used and will be deleted.}`,
             );
 
             fs.unlinkSync(
               path.resolve(
                 evaluateFilePath(workingDir, dirStructure, language),
-                file.name,
+                file.relativePath,
               ),
             );
 
             const cacheFile = path.resolve(
               evaluateFilePath(workingDir, dirStructure, language),
-              file.name,
+              file.relativePath,
             );
             if (fs.existsSync(cacheFile)) {
               fs.unlinkSync(cacheFile);
@@ -349,12 +360,12 @@ const translate = async (
         }
 
         for (const templateFile of templateFiles) {
-          process.stdout.write(`├── Translating ${templateFile.name}`);
+          process.stdout.write(`├── Translating ${templateFile.relativePath}`);
 
           const [addedTranslations, removedTranslations] =
             await translateContent(
               templateFile,
-              existingFiles.find((f) => f.name === templateFile.name),
+              existingFiles.find((f) => f.relativePath === templateFile.relativePath),
             );
 
           totalAddedTranslations += addedTranslations;
@@ -364,14 +375,14 @@ const translate = async (
 
       case 'ngx-translate':
         const sourceFile = templateFiles.find(
-          (f) => f.name === `${sourceLang}.json`,
+          (f) => f.relativePath === `${sourceLang}.json`,
         );
         if (!sourceFile) {
           throw new Error('Could not find source file. This is a bug.');
         }
         const [addedTranslations, removedTranslations] = await translateContent(
           sourceFile,
-          templateFiles.find((f) => f.name === `${language}.json`),
+          templateFiles.find((f) => f.relativePath === `${language}.json`),
         );
 
         totalAddedTranslations += addedTranslations;
@@ -441,6 +452,7 @@ translate(
   commander.appName,
   commander.context,
   commander.overwrite,
+  commander.recursive
 ).catch((e: Error) => {
   console.log();
   console.log(chalk.bgRed('An error has occurred:'));
@@ -460,7 +472,7 @@ function createTranslator(
   dirStructure: DirectoryStructure,
   deleteUnusedStrings: boolean,
   withArrays: boolean,
-  overwrite,
+  overwrite: boolean,
 ) {
   return async (
     sourceFile: TranslatableFile,
@@ -468,7 +480,7 @@ function createTranslator(
   ) => {
     const cachePath = path.resolve(
       evaluateFilePath(cacheDir, dirStructure, sourceLang),
-      sourceFile ? sourceFile.name : '',
+      sourceFile ? sourceFile.relativePath : '',
     );
     let cacheDiff: string[] = [];
     if (fs.existsSync(cachePath) && !fs.statSync(cachePath).isDirectory()) {
@@ -535,11 +547,14 @@ function createTranslator(
           2,
         ) + `\n`;
 
+      const writePath = path.resolve(
+        evaluateFilePath(workingDir, dirStructure, targetLang),
+        destinationFile?.relativePath ?? sourceFile.relativePath,
+      )
+      ensureDirectoryExists(writePath);
+
       fs.writeFileSync(
-        path.resolve(
-          evaluateFilePath(workingDir, dirStructure, targetLang),
-          destinationFile?.name ?? sourceFile.name,
-        ),
+        writePath,
         newContent,
       );
 
@@ -548,14 +563,15 @@ function createTranslator(
         dirStructure,
         targetLang,
       );
-      if (!fs.existsSync(languageCachePath)) {
-        fs.mkdirSync(languageCachePath);
-      }
+
+      const langCacheFilePath = path.resolve(
+        languageCachePath,
+        destinationFile?.relativePath ?? sourceFile.relativePath,
+      );
+      ensureDirectoryExists(langCacheFilePath)
+
       fs.writeFileSync(
-        path.resolve(
-          languageCachePath,
-          destinationFile?.name ?? sourceFile.name,
-        ),
+        langCacheFilePath,
         JSON.stringify(translatedFile, null, 2) + '\n',
       );
     }
