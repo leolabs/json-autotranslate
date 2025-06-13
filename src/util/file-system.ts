@@ -48,7 +48,7 @@ export const loadTranslations = (
   fileType: FileType = 'auto',
   withArrays = false,
 ) =>
-  globSync(`${directory}/*.json`, { ignore: exclude }).map((f) => {
+  globSync(`${directory}/*.json`, { ignore: exclude, cwd: directory }).map((f) => {
     const json = require(path.resolve(directory, f));
     const type = fileType === 'auto' ? detectFileType(json) : fileType;
 
