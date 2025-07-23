@@ -389,7 +389,7 @@ const translate = async (
       ncp(
         evaluateFilePath(workingDir, dirStructure, sourceLang),
         evaluateFilePath(resolvedCacheDir, dirStructure, sourceLang),
-        (err) => (err ? rej() : res(null)),
+        (err) => (err ? rej(err) : res(null)),
       ),
     );
     console.log(chalk`└── {green.bold Translation files have been cached.}`);
@@ -441,11 +441,17 @@ translate(
   commander.appName,
   commander.context,
   commander.overwrite,
-).catch((e: Error) => {
+).catch((e: unknown) => {
   console.log();
   console.log(chalk.bgRed('An error has occurred:'));
-  console.log(chalk.bgRed(e.message));
-  console.log(chalk.bgRed(e.stack));
+  if (e instanceof Error) {
+    console.log(chalk.bgRed(e.message));
+    if (e.stack) {
+      console.log(chalk.bgRed(e.stack));
+    }
+  } else {
+    console.log(chalk.bgRed(String(e)));
+  }
   console.log();
   process.exit(1);
 });
