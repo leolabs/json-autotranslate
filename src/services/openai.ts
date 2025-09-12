@@ -9,11 +9,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { decode } from 'html-entities';
 import _ from 'lodash';
+import chalk from 'chalk';
 
 export class OpenAITranslator implements TranslationService {
   public name = 'OpenAI';
   private apiKey?: string;
   private systemPrompt?: string;
+  private model?: string;
   private context?: { [key: string]: string };
   private interpolationMatcher?: Matcher;
   private decodeEscapes?: boolean;
@@ -30,8 +32,10 @@ export class OpenAITranslator implements TranslationService {
       throw new Error(`Please provide an API key for ${this.name}.`);
     }
 
-    const [apiKey, systemPrompt] = config.split(',');
+    const [apiKey, systemPrompt, model] = config.split(',');
     this.apiKey = apiKey;
+    this.model = model || 'gpt-5';
+    console.log(chalk`├── using {green.bold ${String(this.model)}}`);
     this.systemPrompt =
       systemPrompt ||
       `
@@ -317,9 +321,9 @@ ISO to Language:
     const apiUrl = 'https://api.openai.com/v1/chat/completions';
 
     const requestBody = {
-      model: 'gpt-4o',
+      model: this.model,
       messages,
-      temperature: 0.3,
+      temperature: this.model === 'gpt-4o' ? 0.3 : 1, // gpt-5 has no temperature
     };
 
     const response = await fetch(apiUrl, {
