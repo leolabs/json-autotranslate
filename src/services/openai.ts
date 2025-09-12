@@ -8,7 +8,7 @@ import fetch from 'node-fetch';
 import * as fs from 'fs';
 import * as path from 'path';
 import { decode } from 'html-entities';
-import _ from 'lodash';
+import _, { chunk } from 'lodash';
 import chalk from 'chalk';
 
 export class OpenAITranslator implements TranslationService {
@@ -264,7 +264,20 @@ ISO to Language:
     from: string,
     to: string,
   ): Promise<TranslationResult[]> {
+    if (!this.systemPrompt) {
+      throw new Error('Missing system prompt');
+    }
+
+    type TranslationObject = { key: string, text: string, context: string, replacements: { from: string, to: string }[] };
+    type TranslatedObject = TranslationObject & { translated: string };
+
+    const systemPromptFilled = this.systemPrompt
+        .replace('{sourceLang}', from)
+        .replace('{targetLang}', to);
+
     const results: TranslationResult[] = [];
+
+    const translationsList: TranslationObject[] = [];
 
     for (const stringItem of strings) {
       const { key, value } = stringItem;
@@ -275,40 +288,62 @@ ISO to Language:
       // Get context for the key
       const contextForKey = _.get(this.context, key) || '';
 
-      if (!this.systemPrompt) {
-        throw new Error('Missing system prompt');
-      }
+      translationsList.push({ key, text: replaced.clean, context: contextForKey, replacements: replaced.replacements });
+    }
 
-      // Prepare the messages for OpenAI API
-      const systemPromptFilled = this.systemPrompt
-        .replace('{sourceLang}', from)
-        .replace('{targetLang}', to);
+    // batch the translations list into chunks to avoid any rate limits and make it faster (looks like many small requests are faster than one large one)
+    const batches = chunk(translationsList, 25);
+    if (batches.length > 1) {
+      console.log(''); // empty line
+    }
 
-      const userPrompt = contextForKey
-        ? `Translation context: ${contextForKey}\n\nTranslate the following text: ${replaced.clean}`
-        : `Translate the following text: ${replaced.clean}`;
+    let batchIndex = 0;
+    for (const batch of batches) {
+      batchIndex++;
 
-      const messages = [
-        { role: 'system', content: systemPromptFilled },
-        { role: 'user', content: userPrompt },
-      ];
+      const userPrompt = `
+  I'm sending you a list of strings to translate. This is an array of objects in JSON format, where each object has the following keys:
+
+  - key (string) - unique identifier for the string
+  - text (string) - the string to translate
+  - context (string) - the context for the string, if available
+  - replacements (array of objects) - the replacements for the string, if available, do not touch!
+
+  Please translate each value of each object's "text" key into ${to}.
+  
+  Return the translated text in the same format as the input, with the "translated" key added to each object.
+  
+  Do not touch any other keys!
+
+  ${JSON.stringify(batch)}
+      `;
 
       // Make the API call to OpenAI
-      const translatedText = await this.callOpenAIChatCompletion(messages);
+      const batchTranslations = await this.callOpenAIChatCompletion([
+        { role: 'system', content: systemPromptFilled },
+        { role: 'user', content: userPrompt },
+      ]);
 
-      // Re-insert interpolations
-      const finalTranslation = await reInsertInterpolations(
-        translatedText,
-        replaced.replacements,
-      );
+      const batchTranslationsParsed = JSON.parse(batchTranslations) as TranslatedObject[];
 
-      results.push({
-        key,
-        value,
-        translated: this.decodeEscapes
-          ? decode(finalTranslation)
-          : finalTranslation,
-      });
+      for (const translation of batchTranslationsParsed) {
+        const finalTranslation = await reInsertInterpolations(
+          translation.translated,
+          translation.replacements,
+        );
+
+        results.push({
+          key: translation.key,
+          value: translation.text,
+          translated: this.decodeEscapes
+            ? decode(finalTranslation)
+            : finalTranslation,
+        });
+      }
+
+      if (batches.length > 1) {
+        console.log(chalk`├── ${Math.round(batchIndex / batches.length * 100)}%`);
+      }
     }
 
     return results;
