@@ -138,7 +138,7 @@ As of this release, json-autotranslate offers five services:
   to translate strings)
 - **amazon-translate** (uses
   [Amazon Translate](https://aws.amazon.com/translate/) to translate strings)
-- **OpenAI** (uses gpt-4o and can take a context file path from the context option)
+- **OpenAI** (uses gpt-5 by default and can take a context file path from the context option as well as custom system prompt)
 - **manual** (allows you to translate strings manually by entering them into the
   CLI)
 - **dry-run** (outputs a list of strings that will be translated without
@@ -271,6 +271,33 @@ At a minimum, this must include the AWS region.
 
 Amazon Translate offers a free tier, but is paid after that. See their
 [pricing](https://aws.amazon.com/translate/pricing/) page for details.
+
+### OpenAI
+
+You need to have an account with [OpenAI](https://platform.openai.com/docs/overview).
+
+The `--config` value is a comma separated list of values and only the API key one (1st one) is required:
+
+```
+--config [apiKey][,systemPrompt][,model]
+```
+
+Where:
+
+- `apiKey` is the API key [obtained from OpenAI dashboard](https://platform.openai.com/api-keys). This key is secret, so don't commit it!
+- `systemPrompt` can either be a string of a system prompt to pass instead of the default one or a path to file that contains such prompt (recommended). Default value is our built in prompt.
+- `model` to use. You can check available models and their rate and token limits [on your dashboard](https://platform.openai.com/settings/organization/limits). Default: `gpt-5`.
+
+Recommendations:
+
+- Put your OpenAI API key in `.env.local` under `OPENAI_API_KEY` env var and use it with `source .env.local` before running translate
+- Put your custom prompt in `json-autotranslate.prompt.md` file in your cwd. Write what tone should be used, the global context of translation (e.g. target group, type of product) and also include list of terms that shouldn't be translated (e.g. your app name)
+
+Example usage:
+
+```
+source .env.local && npx json-autotranslate --service openai --config ${OPENAI_API_KEY},./json-autotranslate.prompt.md,gpt-5-mini
+```
 
 ### Manual
 
