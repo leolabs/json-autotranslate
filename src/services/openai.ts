@@ -37,7 +37,7 @@ export class OpenAITranslator implements TranslationService {
     this.model = model || 'gpt-5';
     console.log(chalk`├── using {green.bold ${String(this.model)}}`);
     this.systemPrompt =
-      systemPrompt ||
+      this.loadSystemPrompt(systemPrompt) ||
       `
 You are an expert linguistic translator specializing in {sourceLang} to {targetLang} (ISO 639-1) translations. Your task is to provide accurate, contextually appropriate, and natural-sounding translations while adhering to the following guidelines:
 - Preserve the original meaning: Ensure that the core message and nuances of the source text are accurately conveyed in the target language.
@@ -346,5 +346,21 @@ ISO to Language:
     const assistantMessage = responseData.choices[0].message.content.trim();
 
     return assistantMessage;
+  }
+
+  private loadSystemPrompt(systemPrompt: string | undefined) {
+    if (!systemPrompt) {
+      console.log(chalk`├── using default system prompt`);
+      return undefined;
+    }
+
+    const systemPromptFilePath = path.resolve(process.cwd(), systemPrompt);
+    if (fs.existsSync(systemPromptFilePath)) {
+      console.log(chalk`├── using system prompt from file: {green.bold ${systemPromptFilePath}}`);
+      return fs.readFileSync(systemPromptFilePath, 'utf-8');
+    }
+
+    console.log(chalk`├── using system prompt from string`);
+    return systemPrompt;
   }
 }
