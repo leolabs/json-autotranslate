@@ -41,6 +41,7 @@ export class ManualTranslation implements TranslationService {
 
       const result = await inquirer.prompt<{ result: string }>([
         {
+          type: 'input',
           name: 'result',
           message: `[${from} -> ${to}] ${
             key !== value ? `(${key}) ` : ''
