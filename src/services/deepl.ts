@@ -76,10 +76,13 @@ export class DeepL implements TranslationService {
     }
 
     const url = new URL(`${this.apiEndpoint}/languages`);
-    url.searchParams.append('auth_key', this.apiKey);
     url.searchParams.append('type', 'target');
 
-    const response = await fetch(url.toString());
+    const response = await fetch(url.toString(), {
+      headers: {
+        Authorization: `DeepL-Auth-Key ${this.apiKey}`,
+      },
+    });
 
     if (!response.ok) {
       throw new Error('Could not fetch supported languages from DeepL');
