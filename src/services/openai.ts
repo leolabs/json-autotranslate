@@ -8,12 +8,14 @@ import fetch from 'node-fetch';
 import * as fs from 'fs';
 import * as path from 'path';
 import { decode } from 'html-entities';
-import _ from 'lodash';
+import _, { chunk } from 'lodash';
+import chalk from 'chalk';
 
 export class OpenAITranslator implements TranslationService {
   public name = 'OpenAI';
   private apiKey?: string;
   private systemPrompt?: string;
+  private model?: string;
   private context?: { [key: string]: string };
   private interpolationMatcher?: Matcher;
   private decodeEscapes?: boolean;
@@ -30,10 +32,12 @@ export class OpenAITranslator implements TranslationService {
       throw new Error(`Please provide an API key for ${this.name}.`);
     }
 
-    const [apiKey, systemPrompt] = config.split(',');
+    const [apiKey, systemPrompt, model] = config.split(',');
     this.apiKey = apiKey;
+    this.model = model || 'gpt-5';
+    console.log(chalk`├── using {green.bold ${String(this.model)}}`);
     this.systemPrompt =
-      systemPrompt ||
+      this.loadSystemPrompt(systemPrompt) ||
       `
 You are an expert linguistic translator specializing in {sourceLang} to {targetLang} (ISO 639-1) translations. Your task is to provide accurate, contextually appropriate, and natural-sounding translations while adhering to the following guidelines:
 - Preserve the original meaning: Ensure that the core message and nuances of the source text are accurately conveyed in the target language.
@@ -260,7 +264,20 @@ ISO to Language:
     from: string,
     to: string,
   ): Promise<TranslationResult[]> {
+    if (!this.systemPrompt) {
+      throw new Error('Missing system prompt');
+    }
+
+    type TranslationObject = { key: string, text: string, context: string, replacements: { from: string, to: string }[] };
+    type TranslatedObject = TranslationObject & { translated: string };
+
+    const systemPromptFilled = this.systemPrompt
+        .replace('{sourceLang}', from)
+        .replace('{targetLang}', to);
+
     const results: TranslationResult[] = [];
+
+    const translationsList: TranslationObject[] = [];
 
     for (const stringItem of strings) {
       const { key, value } = stringItem;
@@ -271,40 +288,62 @@ ISO to Language:
       // Get context for the key
       const contextForKey = _.get(this.context, key) || '';
 
-      if (!this.systemPrompt) {
-        throw new Error('Missing system prompt');
-      }
+      translationsList.push({ key, text: replaced.clean, context: contextForKey, replacements: replaced.replacements });
+    }
 
-      // Prepare the messages for OpenAI API
-      const systemPromptFilled = this.systemPrompt
-        .replace('{sourceLang}', from)
-        .replace('{targetLang}', to);
+    // batch the translations list into chunks to avoid any rate limits and make it faster (looks like many small requests are faster than one large one)
+    const batches = chunk(translationsList, 25);
+    if (batches.length > 1) {
+      console.log(''); // empty line
+    }
 
-      const userPrompt = contextForKey
-        ? `Translation context: ${contextForKey}\n\nTranslate the following text: ${replaced.clean}`
-        : `Translate the following text: ${replaced.clean}`;
+    let batchIndex = 0;
+    for (const batch of batches) {
+      batchIndex++;
 
-      const messages = [
-        { role: 'system', content: systemPromptFilled },
-        { role: 'user', content: userPrompt },
-      ];
+      const userPrompt = `
+  I'm sending you a list of strings to translate. This is an array of objects in JSON format, where each object has the following keys:
+
+  - key (string) - unique identifier for the string
+  - text (string) - the string to translate
+  - context (string) - the context for the string, if available
+  - replacements (array of objects) - the replacements for the string, if available, do not touch!
+
+  Please translate each value of each object's "text" key into ${to}.
+  
+  Return the translated text in the same format as the input, with the "translated" key added to each object.
+  
+  Do not touch any other keys!
+
+  ${JSON.stringify(batch)}
+      `;
 
       // Make the API call to OpenAI
-      const translatedText = await this.callOpenAIChatCompletion(messages);
+      const batchTranslations = await this.callOpenAIChatCompletion([
+        { role: 'system', content: systemPromptFilled },
+        { role: 'user', content: userPrompt },
+      ]);
 
-      // Re-insert interpolations
-      const finalTranslation = await reInsertInterpolations(
-        translatedText,
-        replaced.replacements,
-      );
+      const batchTranslationsParsed = JSON.parse(batchTranslations) as TranslatedObject[];
 
-      results.push({
-        key,
-        value,
-        translated: this.decodeEscapes
-          ? decode(finalTranslation)
-          : finalTranslation,
-      });
+      for (const translation of batchTranslationsParsed) {
+        const finalTranslation = await reInsertInterpolations(
+          translation.translated,
+          translation.replacements,
+        );
+
+        results.push({
+          key: translation.key,
+          value: translation.text,
+          translated: this.decodeEscapes
+            ? decode(finalTranslation)
+            : finalTranslation,
+        });
+      }
+
+      if (batches.length > 1) {
+        console.log(chalk`├── ${Math.round(batchIndex / batches.length * 100)}%`);
+      }
     }
 
     return results;
@@ -317,9 +356,9 @@ ISO to Language:
     const apiUrl = 'https://api.openai.com/v1/chat/completions';
 
     const requestBody = {
-      model: 'gpt-4o',
+      model: this.model,
       messages,
-      temperature: 0.3,
+      temperature: this.model === 'gpt-4o' ? 0.3 : 1, // gpt-5 has no temperature
     };
 
     const response = await fetch(apiUrl, {
@@ -342,5 +381,21 @@ ISO to Language:
     const assistantMessage = responseData.choices[0].message.content.trim();
 
     return assistantMessage;
+  }
+
+  private loadSystemPrompt(systemPrompt: string | undefined) {
+    if (!systemPrompt) {
+      console.log(chalk`├── using default system prompt`);
+      return undefined;
+    }
+
+    const systemPromptFilePath = path.resolve(process.cwd(), systemPrompt);
+    if (fs.existsSync(systemPromptFilePath)) {
+      console.log(chalk`├── using system prompt from file: {green.bold ${systemPromptFilePath}}`);
+      return fs.readFileSync(systemPromptFilePath, 'utf-8');
+    }
+
+    console.log(chalk`├── using system prompt from string`);
+    return systemPrompt;
   }
 }
