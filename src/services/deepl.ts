@@ -75,8 +75,8 @@ export class DeepL implements TranslationService {
       throw new Error('Missing API key');
     }
 
-    const url = new URL(`${this.apiEndpoint}/languages`);
-    url.searchParams.append('type', 'target');
+    const url = new URL(`${this.apiEndpoint.replace('/v2', '/v3')}/languages`);
+    url.searchParams.append('resource', 'translate_text');
 
     const response = await fetch(url.toString(), {
       headers: {
@@ -89,37 +89,39 @@ export class DeepL implements TranslationService {
     }
 
     const languages: Array<{
-      language: string;
+      lang: string;
       name: string;
-      supports_formality: boolean;
+      usable_as_target: boolean;
+      features: { formality: boolean };
     }> = await response.json();
 
-    return languages;
+    const targetLanguages = languages.filter((l) => l.usable_as_target);
+    return targetLanguages;
   }
 
   getFormalityLanguages(
     languages: Array<{
-      language: string;
+      lang: string;
       name: string;
-      supports_formality: boolean;
+      features: { formality: boolean };
     }>,
   ) {
-    const supportedLanguages = languages.filter((l) => l.supports_formality);
+    const supportedLanguages = languages.filter((l) => l.features.formality);
     return this.formatLanguages(supportedLanguages);
   }
 
   formatLanguages(
     languages: Array<{
-      language: string;
+      lang: string;
       name: string;
-      supports_formality: boolean;
+      features: { formality: boolean };
     }>,
   ) {
     // DeepL supports e.g. either EN-US or EN as language code, but only returns EN-US
     // so we add both variants to the array and filter duplicates later.
     const languageCodes = languages.flatMap((l) => [
-      l.language,
-      l.language.split('-')[0],
+      l.lang,
+      l.lang.split('-')[0],
     ]);
     return new Set(languageCodes.map((l) => l.toLowerCase()));
   }
